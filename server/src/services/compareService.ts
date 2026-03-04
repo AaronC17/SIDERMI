@@ -1,4 +1,5 @@
 import Student, { IStudent } from '../models/Student';
+import { detectarSexo } from './genderService';
 import {
   AspiranteRow,
   MatriculadoRow,
@@ -72,7 +73,7 @@ export async function importarAspirantes(rows: AspiranteRow[]): Promise<CompareR
       codigoCarrera: row.codigoCarrera,
       citaOrdinaria: row.citaOrdinaria,
       citaExtraordinaria: row.citaExtraordinaria,
-      sexo: row.sexo || '',
+      sexo: detectarSexo(nombre),
       tipoMatricula: 'ORDINARIA',
       matriculado: false,
       fuenteDatos: 'ASPIRANTES',
@@ -112,6 +113,10 @@ export async function importarCorteMatriculados(
       updateData.matriculado = true;
       updateData.tipoMatricula = 'ORDINARIA';
       updateData.fuenteDatos = 'SIGU';
+      if (!existing.sexo) {
+        const sexo = detectarSexo(existing.nombre);
+        if (sexo) updateData.sexo = sexo;
+      }
 
       if (!existing.boleta && row.boleta) updateData.boleta = row.boleta;
       if (!existing.monto && row.monto) updateData.monto = row.monto;
@@ -123,9 +128,8 @@ export async function importarCorteMatriculados(
       if (row.moneda) updateData.moneda = row.moneda;
       if (corte) updateData.corteMatricula = corte;
 
-      // Si el nombre viene más completo, actualizar
-      if (row.nombre && row.nombre.length > (existing.nombre?.length || 0)) {
-        // Separar nombre completo tipo "APELLIDO1 APELLIDO2 NOMBRE1 NOMBRE2"
+      // Solo actualizar nombre si el estudiante NO tiene apellidos (fue creado sin ellos)
+      if (row.nombre && !existing.primerApellido) {
         const partes = row.nombre.split(' ').filter(p => p.length > 0);
         if (partes.length >= 3) {
           updateData.primerApellido = partes[0];
@@ -173,7 +177,7 @@ export async function importarCorteMatriculados(
         tipoPago: row.tipoPago,
         recibo: row.recibo,
         montoPagado: row.montoPagado,
-        sexo: '',
+        sexo: detectarSexo(nombre),
         tipoMatricula: 'EXTRAORDINARIA',  // Nuevo en corte = no estaba en aspirantes = extraordinaria
         matriculado: true,
         corteMatricula: corte,
@@ -217,6 +221,10 @@ export async function importarAvatar(
       updateData.matriculado = true;
       updateData.tipoMatricula = 'ORDINARIA';
       updateData.fuenteDatos = 'AVATAR';
+      if (!existing.sexo) {
+        const sexo = detectarSexo(existing.nombre);
+        if (sexo) updateData.sexo = sexo;
+      }
       if (row.carnet && !existing.carnet) updateData.carnet = row.carnet;
       if (row.correoElectronico && !existing.correoElectronico) updateData.correoElectronico = row.correoElectronico;
       if (row.telefono && !existing.telefono) updateData.telefono = row.telefono;
@@ -250,7 +258,7 @@ export async function importarAvatar(
         correoElectronico: row.correoElectronico,
         telefono: row.telefono,
         codigoCarreraAvatar: row.codigoCarrera,
-        sexo: '',
+        sexo: detectarSexo(nombre),
         tipoMatricula: 'EXTRAORDINARIA',  // Nuevo en Avatar = no estaba en aspirantes = extraordinaria
         matriculado: true,
         fuenteDatos: 'AVATAR',

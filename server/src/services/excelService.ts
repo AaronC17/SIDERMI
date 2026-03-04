@@ -6,7 +6,6 @@ export interface AspiranteRow {
   nombre: string;
   primerApellido: string;
   segundoApellido: string;
-  sexo: string;
   correoElectronico: string;
   telefono: string;
   sede: string;
@@ -85,7 +84,6 @@ export function parseAspirantesSheet(filePath: string): AspiranteRow[] {
       nombre: cleanStr(row['Nombre'] || row['NOMBRE'] || ''),
       primerApellido: cleanStr(row['Primer Apellido'] || row['PrimerApellido'] || ''),
       segundoApellido: cleanStr(row['Segundo Apellido'] || row['SegundoApellido'] || ''),
-      sexo: cleanStr(row['Sexo'] || row['SEXO'] || row['Género'] || '').toUpperCase().charAt(0) === 'F' ? 'F' : (cleanStr(row['Sexo'] || row['SEXO'] || row['Género'] || '').toUpperCase().charAt(0) === 'M' ? 'M' : ''),
       correoElectronico: cleanStr(row['Correo Electrónico'] || row['Correo'] || row['Email'] || ''),
       telefono: cleanStr(row['Teléfono'] || row['Telefono'] || row['Tel'] || ''),
       sede: cleanStr(row['Sede'] || row['SEDE'] || ''),
@@ -185,7 +183,7 @@ export function parseAvatarSheet(filePath: string): AvatarRow[] {
 
   for (const row of rawData) {
     const carnet = cleanStr(row['Carnet'] || row['CARNET'] || '');
-    const cedula = normalizeCedula(row['Cedula'] || row['Cédula'] || row['Carnet'] || '');
+    const cedula = normalizeCedula(row['Identificación'] || row['Identificacion'] || row['Cedula'] || row['Cédula'] || row['CEDULA'] || '');
     const nombre = cleanStr(row['Nombre'] || row['NOMBRE'] || '');
 
     if ((!cedula || cedula.length < 5) && !carnet) continue;
