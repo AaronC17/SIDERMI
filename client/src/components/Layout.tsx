@@ -14,12 +14,14 @@ import {
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 
+const IS_DEMO = import.meta.env.VITE_DEMO_MODE === 'true';
+
 const NAV_ITEMS = [
-  { to: '/', icon: LayoutDashboard, label: 'Dashboard', end: true },
-  { to: '/estudiantes', icon: Users, label: 'Estudiantes' },
-  { to: '/cargar', icon: Upload, label: 'Cargar Datos' },
-  { to: '/plantillas', icon: FileDown, label: 'Plantillas Excel' },
-  { to: '/estadisticas', icon: BarChart3, label: 'Estadísticas' },
+  { to: '/', icon: LayoutDashboard, label: 'Dashboard', end: true, locked: false },
+  { to: '/estudiantes', icon: Users, label: 'Estudiantes', locked: true },
+  { to: '/cargar', icon: Upload, label: 'Cargar Datos', locked: true },
+  { to: '/plantillas', icon: FileDown, label: 'Plantillas Excel', locked: true },
+  { to: '/estadisticas', icon: BarChart3, label: 'Estadísticas', locked: true },
 ];
 
 const PAGE_TITLES: Record<string, string> = {
@@ -57,7 +59,7 @@ export default function Layout() {
           <img src="/24-UTN.png" alt="UTN" className="w-11 h-11 rounded-xl object-contain bg-white/10 p-1 shadow-md shadow-black/15" />
           <div className="flex-1 min-w-0">
             <p className="text-[14px] font-extrabold text-white tracking-wide leading-none">SIDERMI</p>
-            <p className="text-[9px] text-utn-gold/70 mt-1 font-semibold tracking-wider uppercase">Sede del Pacífico</p>
+            <p className="text-[9px] text-white/50 mt-1 font-semibold tracking-wider uppercase">Sede del Pacífico</p>
           </div>
           <button className="lg:hidden p-1 text-white/50 hover:text-white" onClick={() => setMobileOpen(false)}>
             <X size={18} />
@@ -65,36 +67,39 @@ export default function Layout() {
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 py-5 px-3 overflow-y-auto space-y-0.5">
-          <p className="text-[9px] uppercase tracking-[0.15em] text-white/25 font-bold px-3 mb-3">
+        <nav className="flex-1 py-4 px-3 overflow-y-auto space-y-0.5">
+          <p className="text-[9px] uppercase tracking-[0.15em] text-white/45 font-bold px-3 mb-2">
             Menú principal
           </p>
-          {NAV_ITEMS.map(item => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              end={item.end}
-              onClick={() => setMobileOpen(false)}
-              className={({ isActive }) =>
-                `group flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-medium transition-all duration-150
-                 ${isActive
-                  ? 'bg-white/[0.12] text-white shadow-sm'
-                  : 'text-white/55 hover:bg-white/[0.06] hover:text-white/80'
-                }`
-              }
-            >
-              {({ isActive }) => (
-                <>
-                  <div className={`w-8 h-8 rounded-md flex items-center justify-center transition-colors
-                    ${isActive ? 'bg-utn-gold/20 text-utn-gold' : 'text-white/40 group-hover:text-white/60'}`}>
-                    <item.icon size={17} />
-                  </div>
-                  <span className="flex-1">{item.label}</span>
-                  {isActive && <ChevronRight size={14} className="text-white/30" />}
-                </>
-              )}
-            </NavLink>
-          ))}
+          {NAV_ITEMS.map(item => {
+            const isNavLocked = IS_DEMO && item.locked;
+            return (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                end={item.end}
+                onClick={() => setMobileOpen(false)}
+                className={({ isActive }) =>
+                  `group flex items-center gap-3 px-3 py-2 rounded-lg text-[13.5px] font-semibold transition-all duration-150
+                   ${isActive
+                    ? 'bg-white/[0.14] text-white shadow-sm'
+                    : 'text-white/75 hover:bg-white/[0.08] hover:text-white'
+                  }`
+                }
+              >
+                {({ isActive }) => (
+                  <>
+                    <div className={`w-7 h-7 rounded-md flex items-center justify-center transition-colors
+                      ${isActive ? 'bg-white/20 text-white' : 'text-white/60 group-hover:text-white'}`}>
+                      <item.icon size={16} />
+                    </div>
+                    <span className="flex-1">{item.label}</span>
+                    {!isNavLocked && isActive && <ChevronRight size={14} className="text-white/40" />}
+                  </>
+                )}
+              </NavLink>
+            );
+          })}
         </nav>
 
         {/* User section at bottom */}
@@ -138,7 +143,7 @@ export default function Layout() {
           <div className="flex items-center gap-2">
             <button className="p-2 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors relative">
               <Bell size={18} />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-utn-gold rounded-full" />
+              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-sky-400 rounded-full" />
             </button>
             <div className="hidden sm:flex items-center gap-2 ml-2 pl-3 border-l border-slate-200">
               <div className="w-2 h-2 rounded-full bg-emerald-400" />

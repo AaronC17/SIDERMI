@@ -22,10 +22,12 @@ export default function Dashboard() {
   const { addToast } = useToast();
   const navigate = useNavigate();
 
+  const IS_DEMO = import.meta.env.VITE_DEMO_MODE === 'true';
+
   useEffect(() => {
     getDashboard()
       .then(setStats)
-      .catch(() => addToast('Error al cargar estadísticas', 'error'))
+      .catch(() => { if (!IS_DEMO) addToast('Error al cargar estadísticas', 'error'); })
       .finally(() => setLoading(false));
   }, []);
 

@@ -8,6 +8,9 @@ import Students from './pages/Students';
 import Upload from './pages/Upload';
 import Stats from './pages/Stats';
 import Templates from './pages/Templates';
+import DemoLocked from './pages/DemoLocked';
+
+const IS_DEMO = import.meta.env.VITE_DEMO_MODE === 'true';
 
 function ProtectedRoutes() {
   const { isAuthenticated } = useAuth();
@@ -16,10 +19,10 @@ function ProtectedRoutes() {
     <Routes>
       <Route element={<Layout />}>
         <Route path="/" element={<Dashboard />} />
-        <Route path="/estudiantes" element={<Students />} />
-        <Route path="/cargar" element={<Upload />} />
-        <Route path="/estadisticas" element={<Stats />} />
-        <Route path="/plantillas" element={<Templates />} />
+        <Route path="/estudiantes" element={IS_DEMO ? <DemoLocked /> : <Students />} />
+        <Route path="/cargar" element={IS_DEMO ? <DemoLocked /> : <Upload />} />
+        <Route path="/estadisticas" element={IS_DEMO ? <DemoLocked /> : <Stats />} />
+        <Route path="/plantillas" element={IS_DEMO ? <DemoLocked /> : <Templates />} />
       </Route>
     </Routes>
   );
