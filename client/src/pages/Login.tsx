@@ -200,20 +200,20 @@ export default function Login() {
                   disabled={loading}
                   className="group/btn w-full py-4 rounded-xl text-[13.5px] font-semibold text-white flex items-center justify-center gap-2 transition-all duration-300 active:scale-[0.98] disabled:opacity-60 cursor-pointer"
                   style={{
-                    background: 'linear-gradient(135deg, #0f1f3d 0%, #1a3a6e 55%, #2563eb 100%)',
+                    background: 'linear-gradient(135deg, #0f1f3d 0%, #1a3a6e 55%, #1d4ed8 100%)',
                     boxShadow: '0 4px 14px rgba(15,31,61,0.38), 0 8px 28px rgba(37,99,235,0.28)',
                     transition: 'all 0.3s cubic-bezier(0.22,1,0.36,1)',
                   }}
                   onMouseEnter={e => {
                     if (!loading) {
-                      e.currentTarget.style.background = 'linear-gradient(135deg, #142D5C 0%, #1e4ba5 55%, #3b82f6 100%)'
+                      e.currentTarget.style.background = 'linear-gradient(135deg, #142D5C 0%, #1e4ba5 55%, #2563eb 100%)'
                       e.currentTarget.style.boxShadow = '0 6px 18px rgba(15,31,61,0.26), 0 12px 32px rgba(37,99,235,0.30)'
                       e.currentTarget.style.transform = 'translateY(-1px)'
                     }
                   }}
                   onMouseLeave={e => {
                     if (!loading) {
-                      e.currentTarget.style.background = 'linear-gradient(135deg, #0f1f3d 0%, #1a3a6e 55%, #2563eb 100%)'
+                      e.currentTarget.style.background = 'linear-gradient(135deg, #0f1f3d 0%, #1a3a6e 55%, #1d4ed8 100%)'
                       e.currentTarget.style.boxShadow = '0 4px 14px rgba(15,31,61,0.38), 0 8px 28px rgba(37,99,235,0.28)'
                       e.currentTarget.style.transform = 'translateY(0)'
                     }
