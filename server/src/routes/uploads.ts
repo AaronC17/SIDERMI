@@ -200,9 +200,20 @@ router.post('/auto', uploadExcel.single('archivo'), async (req: Request, res: Re
       }
     }
 
+    // Agregar totales acumulados para que el frontend los muestre
+    const totales = {
+      nuevos:       (resultados.aspirantes?.nuevos      || 0) + (resultados.matriculados?.nuevos      || 0) + (resultados.avatar?.nuevos      || 0),
+      existentes:   (resultados.aspirantes?.existentes  || 0) + (resultados.matriculados?.existentes  || 0) + (resultados.avatar?.existentes  || 0),
+      actualizados: (resultados.aspirantes?.actualizados|| 0) + (resultados.matriculados?.actualizados|| 0) + (resultados.avatar?.actualizados|| 0),
+    };
+
     res.json({
       success: true,
       archivo: req.file.originalname,
+      registrosTotales: totales.nuevos + totales.existentes + totales.actualizados,
+      nuevos:       totales.nuevos,
+      existentes:   totales.existentes,
+      actualizados: totales.actualizados,
       ...resultados,
     });
   } catch (error: any) {

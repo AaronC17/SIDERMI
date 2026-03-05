@@ -3,7 +3,6 @@ import {
   Search,
   ChevronLeft,
   ChevronRight,
-  Edit,
   Mail,
   CheckCircle,
   XCircle,
@@ -17,19 +16,20 @@ import {
   Users,
   UserCheck,
   UserX,
+  Edit,
 } from 'lucide-react';
-import { getStudents, notificarEstudiante } from '../services/api';
-import type { Student, PaginatedResponse } from '../types';
+import { getStudents, notificarEstudiante, getDashboard } from '../services/api';
+import type { Student, PaginatedResponse, DashboardStats } from '../types';
 import { useToast } from '../components/Toast';
 import StudentEditModal from './StudentEdit';
 
 /* ── Style maps ── */
-const ESTADO_STYLE: Record<string, { bg: string; text: string; dot: string }> = {
-  PENDIENTE:  { bg: 'bg-amber-50', text: 'text-amber-700', dot: 'bg-amber-400' },
-  COMPLETO:   { bg: 'bg-emerald-50', text: 'text-emerald-700', dot: 'bg-emerald-400' },
-  ARCHIVADO:  { bg: 'bg-slate-100', text: 'text-slate-600', dot: 'bg-slate-400' },
-  LLAMAR:     { bg: 'bg-slate-100', text: 'text-slate-600', dot: 'bg-slate-400' },
-  NOTIFICADO: { bg: 'bg-utn-blue/10', text: 'text-utn-blue', dot: 'bg-utn-blue' },
+const ESTADO_STYLE: Record<string, { bg: string; text: string; dot: string; border: string }> = {
+  PENDIENTE:  { bg: 'bg-amber-50',   text: 'text-amber-700',   dot: 'bg-amber-400',   border: 'border-amber-200' },
+  COMPLETO:   { bg: 'bg-emerald-50', text: 'text-emerald-700', dot: 'bg-emerald-400', border: 'border-emerald-200' },
+  ARCHIVADO:  { bg: 'bg-slate-100',  text: 'text-slate-600',   dot: 'bg-slate-400',   border: 'border-slate-200' },
+  LLAMAR:     { bg: 'bg-slate-100',  text: 'text-slate-600',   dot: 'bg-slate-400',   border: 'border-slate-200' },
+  NOTIFICADO: { bg: 'bg-blue-50',    text: 'text-blue-700',    dot: 'bg-blue-500',    border: 'border-blue-200' },
 };
 
 /* ── Small helpers ── */
@@ -41,15 +41,21 @@ function DocDot({ estado, label }: { estado: string; label: string }) {
     { icon: Minus, cls: 'text-slate-300' };
   return (
     <span title={`${label}: ${estado.replace('_', ' ')}`} className={`${cfg.cls} cursor-help`}>
-      <cfg.icon size={13} />
+      <cfg.icon size={12} />
     </span>
   );
 }
 
+function formatCedula(ced: string): string {
+  const c = ced.replace(/\D/g, '');
+  if (c.length === 9) return `${c[0]}-${c.slice(1, 5)}-${c.slice(5)}`;
+  return ced;
+}
+
 function EstadoBadge({ estado }: { estado: string }) {
-  const s = ESTADO_STYLE[estado] || { bg: 'bg-slate-100', text: 'text-slate-600', dot: 'bg-slate-400' };
+  const s = ESTADO_STYLE[estado] || { bg: 'bg-slate-100', text: 'text-slate-600', dot: 'bg-slate-400', border: 'border-slate-200' };
   return (
-    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-semibold ${s.bg} ${s.text}`}>
+    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-bold border ${s.bg} ${s.text} ${s.border}`}>
       <span className={`w-1.5 h-1.5 rounded-full ${s.dot}`} />
       {estado}
     </span>
@@ -72,12 +78,13 @@ export default function Students() {
 
   const [page, setPage] = useState(1);
   const [editStudent, setEditStudent] = useState<Student | null>(null);
+  const [stats, setStats] = useState<DashboardStats | null>(null);
   const { addToast } = useToast();
 
   /* ── Fetch ── */
   const fetchData = useCallback(() => {
     setLoading(true);
-    const params: Record<string, any> = { page, limit: 25 };
+    const params: Record<string, any> = { page, limit: 10 };
     if (search.trim()) params.buscar = search.trim();
     if (matriculado) params.matriculado = matriculado;
     if (estado) params.estado = estado;
@@ -92,6 +99,10 @@ export default function Students() {
   }, [page, search, matriculado, estado, tipoMat, carrera, docFaltante, sort, order]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
+
+  useEffect(() => {
+    getDashboard().then(setStats).catch(() => {});
+  }, []);
 
   /* ── Derived ── */
   const activeFilters = [estado, tipoMat, carrera, docFaltante].filter(Boolean).length;
@@ -122,22 +133,66 @@ export default function Students() {
   /* ═══ Render ═══ */
   return (
     <div className="space-y-4 fade-up">
-      {/* ── Header row ── */}
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-slate-500">
-          {data ? (
-            <span className="inline-flex items-center gap-1.5">
-              <Users size={14} />
-              <strong className="text-slate-700">{data.pagination.total}</strong> estudiantes
-            </span>
-          ) : 'Cargando…'}
-        </p>
+      {/* ── Header + métricas ── */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h2 className="text-xl font-bold text-slate-800 tracking-tight">Gestión de Estudiantes</h2>
+          <p className="text-sm text-slate-400 mt-0.5">Consulta y administración del estado documental de estudiantes</p>
+        </div>
         <button
-          onClick={() => { setPage(1); fetchData(); }}
-          className="inline-flex items-center gap-1.5 text-xs text-slate-400 hover:text-utn-blue transition-colors"
+          onClick={() => { setPage(1); fetchData(); getDashboard().then(setStats).catch(() => {}); }}
+          className="inline-flex items-center gap-1.5 text-xs text-slate-400 hover:text-utn-blue transition-colors self-start mt-1"
         >
           <RefreshCw size={12} /> Actualizar
         </button>
+      </div>
+
+      {/* ── Mini metric cards ── */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        {[
+          {
+            label: 'Total estudiantes',
+            value: stats?.totalEstudiantes ?? data?.pagination.total ?? '—',
+            icon: Users,
+            color: 'text-utn-blue',
+            bg: 'bg-blue-50',
+            border: 'border-blue-100',
+          },
+          {
+            label: 'Aspirantes',
+            value: stats?.aspirantesSinMatricula ?? '—',
+            icon: UserX,
+            color: 'text-amber-600',
+            bg: 'bg-amber-50',
+            border: 'border-amber-100',
+          },
+          {
+            label: 'Matriculados',
+            value: stats?.matriculados ?? '—',
+            icon: UserCheck,
+            color: 'text-emerald-600',
+            bg: 'bg-emerald-50',
+            border: 'border-emerald-100',
+          },
+          {
+            label: 'Docs completos',
+            value: stats?.documentos?.todosCompletos ?? '—',
+            icon: CheckCircle,
+            color: 'text-blue-500',
+            bg: 'bg-sky-50',
+            border: 'border-sky-100',
+          },
+        ].map(({ label, value, icon: Icon, color, bg, border }) => (
+          <div key={label} className={`bg-white rounded-xl border ${border} px-4 py-3 flex items-center gap-3 shadow-sm`}>
+            <div className={`w-9 h-9 rounded-lg ${bg} flex items-center justify-center shrink-0`}>
+              <Icon size={16} className={color} />
+            </div>
+            <div className="min-w-0">
+              <p className="text-xl font-bold text-slate-800 leading-none">{value}</p>
+              <p className="text-[11px] text-slate-400 mt-0.5 truncate">{label}</p>
+            </div>
+          </div>
+        ))}
       </div>
 
       {/* ── Matriculado / Aspirante segmented control ── */}
@@ -248,7 +303,7 @@ export default function Students() {
       </div>
 
       {/* ── Table ── */}
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-200/60 overflow-hidden">
+      <div className="bg-white rounded-2xl shadow-sm border border-slate-200/60 overflow-hidden" style={{boxShadow: '0 1px 3px rgba(0,0,0,0.04), 0 4px 16px rgba(0,0,0,0.06)'}}>
         {loading ? (
           <div className="flex items-center justify-center py-20">
             <div className="w-6 h-6 border-2 border-slate-200 border-t-utn-blue rounded-full animate-spin" />
@@ -261,24 +316,24 @@ export default function Students() {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full text-sm border-collapse">
               <thead>
-                <tr className="border-b border-slate-100 bg-slate-50/50">
+                <tr style={{background: 'linear-gradient(to bottom, #f8fafc, #f1f5f9)'}} className="border-y border-slate-200">
                   {[
-                    { label: 'Cédula', field: 'cedula', w: 'w-28' },
+                    { label: 'Cédula', field: 'cedula', w: 'w-36' },
                     { label: 'Estudiante', field: 'primerApellido', w: '' },
-                    { label: 'Carrera', field: 'codigoCarrera', w: 'w-24' },
-                    { label: 'Sexo', field: 'sexo', w: 'w-16' },
+                    { label: 'Carrera', field: 'codigoCarrera', w: 'w-20' },
+                    { label: 'Sexo', field: 'sexo', w: 'w-14' },
                     { label: 'Estado', field: 'estadoAvatar', w: 'w-28' },
-                    { label: 'Docs', field: '', w: 'w-24' },
-                    { label: '', field: '', w: 'w-16' },
+                    { label: 'Documentos', field: '', w: 'w-32' },
+                    { label: 'Acciones', field: '', w: 'w-20 text-center' },
                   ].map((col, i) => (
                     <th
                       key={i}
-                      className={`text-left font-semibold text-slate-400 px-4 py-3 text-[10px] uppercase tracking-wider ${col.w} ${col.field ? 'cursor-pointer hover:text-utn-blue select-none' : ''}`}
+                      className={`text-left font-bold text-slate-500 px-4 py-2.5 text-[10px] uppercase tracking-widest ${col.w} ${col.field ? 'cursor-pointer hover:text-utn-blue select-none' : ''}`}
                       onClick={() => col.field && toggleSort(col.field)}
                     >
-                      <span className="inline-flex items-center gap-1">
+                      <span className="inline-flex items-center gap-1.5">
                         {col.label}
                         {col.field && <SortIcon field={col.field} />}
                       </span>
@@ -286,31 +341,45 @@ export default function Students() {
                   ))}
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-slate-100">
                 {data.students.map(s => {
                   const carreraCode = s.codigoCarrera || s.codigoCarreraAvatar || '—';
+                  const docs = [
+                    s.documentos?.titulo?.estado,
+                    s.documentos?.cedulaFrente?.estado,
+                    s.documentos?.cedulaReverso?.estado,
+                    s.documentos?.fotoCarnet?.estado,
+                    s.documentos?.formularioMatricula?.estado,
+                  ];
+                  const docsTotal = docs.length;
+                  const docsCompletos = docs.filter(d => d === 'COMPLETO').length;
+                  const docsPct = Math.round((docsCompletos / docsTotal) * 100);
                   return (
-                    <tr key={s._id} className="border-b border-slate-50 hover:bg-slate-50/60 transition-colors group">
+                    <tr key={s._id} className="hover:bg-blue-50/40 transition-colors duration-100 group">
                       {/* Cédula */}
-                      <td className="px-4 py-3">
-                        <span className="font-mono text-[11px] font-semibold text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded">
-                          {s.cedula}
+                      <td className="px-4 py-2.5">
+                        <span className="font-mono text-[11px] font-bold text-slate-600 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-md tracking-wide whitespace-nowrap">
+                          {formatCedula(s.cedula)}
                         </span>
                       </td>
 
                       {/* Estudiante — name + meta line */}
-                      <td className="px-4 py-3">
-                        <p className="font-medium text-slate-800 text-[13px] leading-tight">
+                      <td className="px-4 py-2.5">
+                        <p className="font-semibold text-slate-800 text-[12px] leading-tight">
                           {s.primerApellido} {s.segundoApellido}, {s.nombre}
                         </p>
-                        <p className="text-[11px] text-slate-400 mt-0.5 flex items-center gap-1.5 flex-wrap">
-                          <span className={`font-bold px-1.5 py-0.5 rounded text-[9px] ${s.matriculado ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'}`}>
+                        <p className="text-[10px] text-slate-400 mt-0.5 flex items-center gap-1.5 flex-wrap">
+                          <span className={`font-bold px-1.5 py-0.5 rounded text-[9px] border ${
+                            s.matriculado
+                              ? 'bg-emerald-50 text-emerald-600 border-emerald-200'
+                              : 'bg-amber-50 text-amber-600 border-amber-200'
+                          }`}>
                             {s.matriculado ? 'MATRICULADO' : 'ASPIRANTE'}
                           </span>
                           {s.correoElectronico && <span className="truncate max-w-[160px]">{s.correoElectronico}</span>}
                           {s.tipoMatricula && (
                             <>
-                              <span className="text-slate-200">·</span>
+                              <span className="text-slate-300">·</span>
                               <span className="font-semibold text-slate-400">{s.tipoMatricula === 'ORDINARIA' ? 'Ord.' : 'Ext.'}</span>
                             </>
                           )}
@@ -318,44 +387,63 @@ export default function Students() {
                       </td>
 
                       {/* Carrera */}
-                      <td className="px-4 py-3">
-                        <span className="text-xs font-medium text-slate-600">{carreraCode}</span>
+                      <td className="px-4 py-2.5">
+                        <span className="text-[11px] font-semibold text-slate-700 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-md">{carreraCode}</span>
                       </td>
 
                       {/* Sexo */}
-                      <td className="px-4 py-3">
-                        <span className="text-[10px] font-medium text-slate-500">
-                          {s.sexo === 'M' ? 'Masc.' : s.sexo === 'F' ? 'Fem.' : '—'}
-                        </span>
+                      <td className="px-4 py-2.5">
+                        <span className="text-[11px] font-bold text-slate-500">{s.sexo || '—'}</span>
                       </td>
 
                       {/* Estado */}
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-2.5">
                         <EstadoBadge estado={s.estadoAvatar} />
                       </td>
 
                       {/* Docs */}
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-0.5">
-                          <DocDot estado={s.documentos?.titulo?.estado || 'NO_REVISADO'} label="Título" />
-                          <DocDot estado={s.documentos?.cedulaFrente?.estado || 'NO_REVISADO'} label="Céd. F" />
-                          <DocDot estado={s.documentos?.cedulaReverso?.estado || 'NO_REVISADO'} label="Céd. R" />
-                          <DocDot estado={s.documentos?.fotoCarnet?.estado || 'NO_REVISADO'} label="Foto" />
-                          <DocDot estado={s.documentos?.formularioMatricula?.estado || 'NO_REVISADO'} label="Form" />
+                      <td className="px-4 py-2.5">
+                        <div className="space-y-1">
+                          <div className="flex items-center justify-between">
+                            <span className={`text-[11px] font-bold ${
+                              docsCompletos === docsTotal ? 'text-emerald-600' :
+                              docsCompletos >= 3 ? 'text-amber-600' : 'text-red-500'
+                            }`}>{docsCompletos}/{docsTotal}</span>
+                            <div className="flex items-center gap-0.5 ml-2">
+                              <DocDot estado={s.documentos?.titulo?.estado || 'NO_REVISADO'} label="Título" />
+                              <DocDot estado={s.documentos?.cedulaFrente?.estado || 'NO_REVISADO'} label="Céd. F" />
+                              <DocDot estado={s.documentos?.cedulaReverso?.estado || 'NO_REVISADO'} label="Céd. R" />
+                              <DocDot estado={s.documentos?.fotoCarnet?.estado || 'NO_REVISADO'} label="Foto" />
+                              <DocDot estado={s.documentos?.formularioMatricula?.estado || 'NO_REVISADO'} label="Form" />
+                            </div>
+                          </div>
+                          <div className="h-1 rounded-full bg-slate-100 overflow-hidden w-full">
+                            <div
+                              className={`h-full rounded-full transition-all duration-300 ${
+                                docsCompletos === docsTotal ? 'bg-emerald-400' :
+                                docsCompletos >= 3 ? 'bg-amber-400' : 'bg-red-400'
+                              }`}
+                              style={{ width: `${docsPct}%` }}
+                            />
+                          </div>
                         </div>
                       </td>
 
                       {/* Actions */}
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button title="Editar" onClick={() => setEditStudent(s)} className="p-1.5 rounded-lg hover:bg-utn-blue/10 text-slate-400 hover:text-utn-blue transition-colors">
+                      <td className="px-4 py-2.5">
+                        <div className="flex items-center gap-1">
+                          <button
+                            title="Editar estudiante"
+                            onClick={() => setEditStudent(s)}
+                            className="p-1.5 rounded-lg hover:bg-utn-blue/10 text-slate-400 hover:text-utn-blue transition-colors"
+                          >
                             <Edit size={13} />
                           </button>
                           <button
-                            title="Notificar"
+                            title="Notificar por correo"
                             onClick={() => handleNotify(s.cedula)}
                             disabled={!s.correoElectronico}
-                            className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 disabled:opacity-20 disabled:cursor-not-allowed transition-colors"
+                            className="p-1.5 rounded-lg hover:bg-amber-100 text-slate-400 hover:text-amber-600 disabled:opacity-20 disabled:cursor-not-allowed transition-colors"
                           >
                             <Mail size={13} />
                           </button>
@@ -371,9 +459,9 @@ export default function Students() {
 
         {/* Pagination */}
         {data && data.pagination.pages > 1 && (
-          <div className="flex items-center justify-between px-4 py-2.5 border-t border-slate-100 bg-slate-50/50">
-            <span className="text-[11px] text-slate-400">
-              {((page - 1) * 25) + 1}–{Math.min(page * 25, data.pagination.total)} de {data.pagination.total}
+          <div className="flex items-center justify-between px-5 py-3 border-t border-slate-200 bg-slate-50">
+            <span className="text-[11px] text-slate-500 font-medium">
+              {((page - 1) * 10) + 1}–{Math.min(page * 10, data.pagination.total)} de <strong>{data.pagination.total}</strong> estudiantes
             </span>
             <div className="flex items-center gap-0.5">
               <button disabled={page <= 1} onClick={() => setPage(p => p - 1)} className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-white disabled:opacity-30">

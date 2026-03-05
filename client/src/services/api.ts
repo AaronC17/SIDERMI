@@ -1,13 +1,25 @@
 import axios from 'axios';
 import type { Student, DashboardStats, PaginatedResponse, UploadResult, UploadHistory } from '../types';
 
+// Usar la IP actual del navegador para conectar al backend
+const getApiBase = () => {
+  if (import.meta.env.VITE_API_BASE) return import.meta.env.VITE_API_BASE;
+  const host = window.location.hostname;
+  return `http://${host}:4000/api`;
+};
+
 const API = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE || 'http://localhost:4000/api',
+  baseURL: getApiBase(),
 });
 
 // === ESTUDIANTES ===
 export const getStudents = (params?: Record<string, any>) =>
   API.get<PaginatedResponse>('/students', { params }).then(r => r.data);
+
+// Obtiene todos los estudiantes (aspirantes originales) sin paginar (hasta 2000)
+export const getAllAspirants = () =>
+  API.get<PaginatedResponse>('/students', { params: { limit: 2000, sort: 'primerApellido' } })
+    .then(r => r.data.students);
 
 export const getStudent = (cedula: string) =>
   API.get<Student>(`/students/${cedula}`).then(r => r.data);

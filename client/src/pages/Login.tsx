@@ -45,7 +45,7 @@ export default function Login() {
 
       {/* PANEL IZQUIERDO */}
       <div
-        className="hidden lg:flex lg:w-[42%] relative flex-col justify-between px-12 py-14 overflow-hidden"
+        className="hidden lg:flex lg:w-[45%] xl:w-[42%] relative flex-col justify-between px-8 xl:px-12 py-10 xl:py-14 overflow-hidden"
         style={{ background: 'linear-gradient(170deg, #08111f 0%, #0d1b35 40%, #111f3d 100%)' }}
       >
         {/* Círculos decorativos — más visibles con intención */}
@@ -67,24 +67,24 @@ export default function Login() {
         </div>
 
         {/* Tagline + módulos */}
-        <div className="relative z-10 space-y-8">
+        <div className="relative z-10 space-y-6 xl:space-y-8">
           <div>
-            <h2 className="text-[28px] font-bold text-white/85 leading-tight tracking-tight">
+            <h2 className="text-2xl xl:text-[28px] font-bold text-white/85 leading-tight tracking-tight">
               Gestión de matrícula
             </h2>
-            <p className="text-lg text-white/50 font-light mt-1">centralizada y eficiente.</p>
-            <div className="mt-5 w-10 h-[2px] bg-blue-400/40 rounded-full" />
+            <p className="text-base xl:text-lg text-white/50 font-light mt-1">centralizada y eficiente.</p>
+            <div className="mt-4 xl:mt-5 w-10 h-[2px] bg-blue-400/40 rounded-full" />
           </div>
 
-          <div className="space-y-5 -ml-3">
+          <div className="space-y-3 xl:space-y-5 -ml-3">
             {FEATURES.map(({ icon: Icon, label, desc }) => (
-              <div key={label} className="flex items-center gap-3.5 group/item cursor-default pl-3 pr-2 py-1.5 rounded-r-xl border-l-2 border-transparent transition-all duration-300 hover:border-blue-400/50 hover:bg-white/[0.045]">
-                <div className="w-7 h-7 rounded-lg bg-white/[0.07] border border-white/[0.10] flex items-center justify-center shrink-0 transition-colors duration-200 group-hover/item:bg-white/[0.12] group-hover/item:border-white/[0.18]">
-                  <Icon size={13} className="text-blue-300/80 transition-colors duration-200 group-hover/item:text-blue-300" />
+              <div key={label} className="flex items-center gap-3 group/item cursor-default pl-3 pr-2 py-1 xl:py-1.5 rounded-r-xl border-l-2 border-transparent transition-all duration-300 hover:border-blue-400/50 hover:bg-white/[0.045]">
+                <div className="w-6 h-6 xl:w-7 xl:h-7 rounded-lg bg-white/[0.07] border border-white/[0.10] flex items-center justify-center shrink-0 transition-colors duration-200 group-hover/item:bg-white/[0.12] group-hover/item:border-white/[0.18]">
+                  <Icon size={12} className="text-blue-300/80 transition-colors duration-200 group-hover/item:text-blue-300" />
                 </div>
                 <div>
-                  <p className="text-[13px] font-semibold text-white/75 transition-colors duration-200 group-hover/item:text-white/90">{label}</p>
-                  <p className="text-[11px] text-white/35 mt-0.5 leading-relaxed transition-colors duration-200 group-hover/item:text-white/45">{desc}</p>
+                  <p className="text-xs xl:text-[13px] font-semibold text-white/75 transition-colors duration-200 group-hover/item:text-white/90">{label}</p>
+                  <p className="text-[10px] xl:text-[11px] text-white/35 mt-0.5 leading-relaxed transition-colors duration-200 group-hover/item:text-white/45">{desc}</p>
                 </div>
               </div>
             ))}
@@ -100,32 +100,32 @@ export default function Login() {
 
       {/* PANEL DERECHO */}
       <div
-        className="flex-1 flex items-center justify-center min-h-screen p-6"
+        className="flex-1 flex items-center justify-center min-h-screen p-4 md:p-6 lg:p-8 overflow-y-auto"
         style={{
           background: 'linear-gradient(135deg, #f4f6f9 0%, #eef1f6 100%)',
           backgroundImage: 'linear-gradient(135deg, #f4f6f9 0%, #eef1f6 100%), radial-gradient(circle, rgba(14,51,102,0.045) 1px, transparent 1px)',
           backgroundSize: 'auto, 26px 26px',
         }}
       >
-        <div className="w-full max-w-[400px]">
+        <div className="w-full max-w-[360px] md:max-w-[400px]">
 
           {/* Card */}
-          <div className="login-card bg-white rounded-2xl px-9 py-12" style={{ boxShadow: '0 4px 6px rgba(0,0,0,0.04), 0 12px 40px rgba(15,31,61,0.10), 0 24px 60px rgba(15,31,61,0.06)' }}>
+          <div className="login-card bg-white rounded-xl md:rounded-2xl px-5 py-6 md:px-8 md:py-8 lg:px-9 lg:py-10" style={{ boxShadow: '0 4px 6px rgba(0,0,0,0.04), 0 12px 40px rgba(15,31,61,0.10), 0 24px 60px rgba(15,31,61,0.06)' }}>
 
             {/* Logo + título */}
-            <div className="flex flex-col items-center mb-9">
+            <div className="flex flex-col items-center mb-5 md:mb-6 lg:mb-8">
               <div
-                className="w-[60px] h-[60px] rounded-2xl bg-white flex items-center justify-center mb-6"
+                className="w-12 h-12 md:w-14 md:h-14 lg:w-[60px] lg:h-[60px] rounded-xl md:rounded-2xl bg-white flex items-center justify-center mb-3 md:mb-4 lg:mb-6"
                 style={{ boxShadow: '0 6px 20px rgba(15,31,61,0.18), 0 0 0 1px rgba(15,31,61,0.11), inset 0 1px 0 rgba(255,255,255,0.9)' }}
               >
-                <img src="/24-UTN.png" alt="UTN" className="w-10 h-10 object-contain" />
+                <img src="/24-UTN.png" alt="UTN" className="w-7 h-7 md:w-9 md:h-9 lg:w-10 lg:h-10 object-contain" />
               </div>
-              <h2 className="text-[23px] font-bold text-slate-800 tracking-tight">Iniciar sesión</h2>
-              <p className="text-[13px] text-slate-400 mt-1.5 text-center leading-relaxed">Ingrese sus credenciales institucionales</p>
+              <h2 className="text-xl md:text-2xl font-bold text-slate-800 tracking-tight">Iniciar sesión</h2>
+              <p className="text-xs md:text-sm text-slate-400 mt-1 md:mt-1.5 text-center leading-relaxed">Ingrese sus credenciales institucionales</p>
             </div>
 
             {/* Form */}
-            <form onSubmit={handleSubmit} className="space-y-5">
+            <form onSubmit={handleSubmit} className="space-y-3 md:space-y-4 lg:space-y-5">
 
               {error && (
                 <div className="flex items-center gap-2.5 px-4 py-3 rounded-xl bg-red-50 border border-red-100 text-red-500 text-sm">
@@ -198,7 +198,7 @@ export default function Login() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="group/btn w-full py-4 rounded-xl text-[13.5px] font-semibold text-white flex items-center justify-center gap-2 transition-all duration-300 active:scale-[0.98] disabled:opacity-60 cursor-pointer"
+                  className="group/btn w-full py-2.5 md:py-3 lg:py-4 rounded-lg md:rounded-xl text-xs md:text-[13px] lg:text-[13.5px] font-semibold text-white flex items-center justify-center gap-2 transition-all duration-300 active:scale-[0.98] disabled:opacity-60 cursor-pointer"
                   style={{
                     background: 'linear-gradient(135deg, #0f1f3d 0%, #1a3a6e 55%, #1d4ed8 100%)',
                     boxShadow: '0 4px 14px rgba(15,31,61,0.38), 0 8px 28px rgba(37,99,235,0.28)',
@@ -238,7 +238,7 @@ export default function Login() {
             </form>
           </div>
 
-          <p className="text-center text-[11px] text-slate-400/70 mt-8">
+          <p className="text-center text-[10px] md:text-[11px] text-slate-400/70 mt-4 md:mt-6 lg:mt-8">
             SIDERMI v1.0 — © 2026 Universidad Técnica Nacional
           </p>
         </div>

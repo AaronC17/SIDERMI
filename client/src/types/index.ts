@@ -64,6 +64,9 @@ export interface DashboardStats {
   porEstado: Record<string, number>;
   porTipoMatricula: Record<string, number>;
   porCarrera: Array<{ carrera: string; cantidad: number }>;
+  porSexo: Array<{ sexo: string; cantidad: number }>;
+  porSede: Array<{ sede: string; cantidad: number }>;
+  verificacionRegistro: { verificados: number; noVerificados: number };
   matriculados: number;
   aspirantesSinMatricula: number;
   documentos: {

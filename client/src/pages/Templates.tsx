@@ -8,9 +8,12 @@ import {
   Download,
   Info,
   CheckCircle,
+  Loader2,
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { useToast } from '../components/Toast';
+import { getAllAspirants } from '../services/api';
+import type { Student } from '../types';
 
 /* ── Real UTN Sede del Pacífico careers ── */
 const CARRERAS = [
@@ -239,6 +242,31 @@ function genCorteRows(n: number) {
   return rows;
 }
 
+/* ── Build corte rows from real aspirants in DB ── */
+function buildCorteRowsFromAspirants(aspirants: Student[]): Record<string, any>[] {
+  const estadosPago = ['PAG', 'PAG', 'PAG', 'PEN'];
+  const tiposPago = ['SIN', 'TRA', 'DEP', 'VEN'];
+  return aspirants.map((s, i) => {
+    const monto = [17500, 35000, 52500, 70000][rndInt(0, 3)];
+    const estado = pick(estadosPago);
+    const pagado = estado === 'PAG';
+    return {
+      'Indice': i + 1,
+      'Boleta': `BOL-${String(100001 + i).padStart(6, '0')}`,
+      'Carnet': s.cedula,
+      'Nombre': `${s.primerApellido} ${s.segundoApellido} ${s.nombre}`,
+      'Mon': 'CRC',
+      'Monto': monto,
+      'Fecha': pagado ? `${rndInt(5, 28)}/${rndInt(1, 2)}/2026` : '',
+      'Est.': estado,
+      'Tipo': pagado ? pick(tiposPago) : '',
+      '': '',
+      'Recibo': pagado ? `REC-${String(200001 + i).padStart(6, '0')}` : '',
+      'Pagado': pagado ? monto : 0,
+    };
+  });
+}
+
 /* ── Template definitions ── */
 interface TemplateConfig {
   key: string;
@@ -273,7 +301,7 @@ const TEMPLATES: TemplateConfig[] = [
     label: 'Corte de Matrícula',
     icon: ClipboardList,
     color: 'amber',
-    description: 'Boletas de Matrícula — Sede Pacífico. ~80% de las cédulas coinciden con aspirantes (→ ORDINARIA), ~20% son nuevos (→ EXTRAORDINARIA). Sirve para comprobar el cruzado automático.',
+    description: 'Boletas de Matrícula — Sede Pacífico. Los datos de ejemplo usan los aspirantes reales ya cargados en la base de datos, con sus cédulas exactas. Sirve para probar el cruzado automático.',
     sheetName: 'Limpieado de datos',
     columns: [
       'Indice', 'Boleta', 'Carnet', 'Nombre', 'Mon', 'Monto',
@@ -300,38 +328,65 @@ const TEMPLATES: TemplateConfig[] = [
 /* ══════════════════════════════════════════════ */
 export default function Templates() {
   const [downloaded, setDownloaded] = useState<string[]>([]);
+  const [generating, setGenerating] = useState<string | null>(null);
   const { addToast } = useToast();
 
-  const generateExcel = (tpl: TemplateConfig, withSample: boolean) => {
-    const wb = XLSX.utils.book_new();
+  const generateExcel = async (tpl: TemplateConfig, withSample: boolean) => {
+    const genKey = `${tpl.key}-${withSample ? 'sample' : 'empty'}`;
+    setGenerating(genKey);
+    try {
+      const wb = XLSX.utils.book_new();
 
-    // Create data rows
-    const rows = withSample ? tpl.genRows(tpl.sampleCount) : [];
-    const ws = XLSX.utils.json_to_sheet(rows, { header: tpl.columns });
+      // Build data rows
+      let rows: Record<string, any>[] = [];
+      if (withSample) {
+        if (tpl.key === 'corte') {
+          // Use real aspirants from the database if available, otherwise fall back silently
+          try {
+            const aspirants = await getAllAspirants();
+            if (aspirants.length > 0) {
+              rows = buildCorteRowsFromAspirants(aspirants);
+            } else {
+              rows = tpl.genRows(tpl.sampleCount);
+            }
+          } catch {
+            rows = tpl.genRows(tpl.sampleCount);
+          }
+        } else {
+          rows = tpl.genRows(tpl.sampleCount);
+        }
+      }
 
-    // Set column widths for readability
-    ws['!cols'] = tpl.columns.map(col => ({
-      wch: Math.max(col.length + 4, 18),
-    }));
+      const ws = XLSX.utils.json_to_sheet(rows, { header: tpl.columns });
 
-    XLSX.utils.book_append_sheet(wb, ws, tpl.sheetName);
+      // Set column widths for readability
+      ws['!cols'] = tpl.columns.map(col => ({
+        wch: Math.max(col.length + 4, 18),
+      }));
 
-    // Add a "Carreras" reference sheet
-    const carreraData = CARRERAS.map(c => ({
-      'Código': c.codigo,
-      'Nombre de Carrera': c.nombre,
-    }));
-    const wsCarreras = XLSX.utils.json_to_sheet(carreraData);
-    wsCarreras['!cols'] = [{ wch: 12 }, { wch: 52 }];
-    XLSX.utils.book_append_sheet(wb, wsCarreras, 'Carreras (Referencia)');
+      XLSX.utils.book_append_sheet(wb, ws, tpl.sheetName);
 
-    // Generate and download
-    const suffix = withSample ? '_ejemplo' : '_plantilla';
-    const filename = `SIDERMI_${tpl.key}${suffix}_${new Date().toISOString().split('T')[0]}.xlsx`;
-    XLSX.writeFile(wb, filename);
+      // Add a "Carreras" reference sheet
+      const carreraData = CARRERAS.map(c => ({
+        'Código': c.codigo,
+        'Nombre de Carrera': c.nombre,
+      }));
+      const wsCarreras = XLSX.utils.json_to_sheet(carreraData);
+      wsCarreras['!cols'] = [{ wch: 12 }, { wch: 52 }];
+      XLSX.utils.book_append_sheet(wb, wsCarreras, 'Carreras (Referencia)');
 
-    setDownloaded(prev => [...prev, `${tpl.key}-${withSample ? 'sample' : 'empty'}`]);
-    addToast(`${tpl.label} descargado: ${filename}`, 'success');
+      // Generate and download
+      const suffix = withSample ? '_ejemplo' : '_plantilla';
+      const filename = `SIDERMI_${tpl.key}${suffix}_${new Date().toISOString().split('T')[0]}.xlsx`;
+      XLSX.writeFile(wb, filename);
+
+      setDownloaded(prev => [...prev, genKey]);
+      if (tpl.key !== 'corte' || !withSample) {
+        addToast(`${tpl.label} descargado: ${filename}`, 'success');
+      }
+    } finally {
+      setGenerating(null);
+    }
   };
 
   return (
@@ -355,6 +410,7 @@ export default function Templates() {
             <li>Vaya a <strong className="text-utn-blue">Cargar Datos</strong> y suba el archivo completado</li>
             <li>La hoja <em>"Carreras (Referencia)"</em> contiene los códigos válidos de carrera</li>
             <li>Las plantillas con datos de ejemplo incluyen registros <strong>realistas con cédulas cruzadas</strong> entre archivos</li>
+              <li>La plantilla de <strong className="text-amber-600">Corte</strong> usa los aspirantes <strong>reales ya cargados</strong> en el sistema</li>
           </ol>
         </div>
       </div>
@@ -386,7 +442,9 @@ export default function Templates() {
                     <h3 className="font-bold text-slate-800 text-sm">{tpl.label}</h3>
                     <p className="text-[11px] text-slate-400">
                       Hoja: <code className="px-1 py-0.5 bg-slate-100 rounded text-[10px]">{tpl.sheetName}</code>
-                      <span className="ml-2">{tpl.sampleCount} filas de ejemplo</span>
+                      <span className="ml-2">
+                        {tpl.key === 'corte' ? 'Aspirantes reales del sistema' : `${tpl.sampleCount} filas de ejemplo`}
+                      </span>
                     </p>
                   </div>
                 </div>
@@ -415,17 +473,27 @@ export default function Templates() {
               <div className="px-5 pb-5 space-y-2">
                 <button
                   onClick={() => generateExcel(tpl, false)}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-utn-blue text-white rounded-xl text-xs font-semibold hover:bg-utn-blue-light transition-colors shadow-sm shadow-utn-blue/15"
+                  disabled={generating !== null}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-utn-blue text-white rounded-xl text-xs font-semibold hover:bg-utn-blue-light transition-colors shadow-sm shadow-utn-blue/15 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {downloaded1 ? <CheckCircle size={13} /> : <Download size={13} />}
+                  {generating === `${tpl.key}-empty`
+                    ? <Loader2 size={13} className="animate-spin" />
+                    : downloaded1 ? <CheckCircle size={13} /> : <Download size={13} />}
                   Plantilla Vacía
                 </button>
                 <button
                   onClick={() => generateExcel(tpl, true)}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-50 text-slate-600 rounded-xl text-xs font-medium hover:bg-slate-100 transition-colors border border-slate-200"
+                  disabled={generating !== null}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-50 text-slate-600 rounded-xl text-xs font-medium hover:bg-slate-100 transition-colors border border-slate-200 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {downloaded2 ? <CheckCircle size={13} className="text-emerald-500" /> : <FileSpreadsheet size={13} />}
-                  Con {tpl.sampleCount} Datos de Ejemplo
+                  {generating === `${tpl.key}-sample`
+                    ? <><Loader2 size={13} className="animate-spin" /> Generando…</>
+                    : downloaded2 ? <CheckCircle size={13} className="text-emerald-500" /> : <FileSpreadsheet size={13} />}
+                  {generating !== `${tpl.key}-sample` && (
+                    tpl.key === 'corte'
+                      ? 'Con Aspirantes Reales'
+                      : `Con ${tpl.sampleCount} Datos de Ejemplo`
+                  )}
                 </button>
               </div>
             </div>

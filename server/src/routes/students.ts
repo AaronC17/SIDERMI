@@ -41,9 +41,9 @@ router.get('/', async (req: Request, res: Response) => {
       filter[docField] = { $ne: 'COMPLETO' };
     }
 
-    // Búsqueda por cédula
+    // Búsqueda por cédula — solo prefijo (debe empezar con el valor buscado)
     if (buscar) {
-      filter.cedula = new RegExp(String(buscar), 'i');
+      filter.cedula = new RegExp('^' + String(buscar).replace(/\D/g, ''), 'i');
     }
 
     const pageNum = Math.max(1, parseInt(String(page)));

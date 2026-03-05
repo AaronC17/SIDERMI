@@ -13,8 +13,8 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 4000;
 
-// Middleware
-app.use(cors({ origin: ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:5175'], credentials: true }));
+// Middleware - permitir acceso desde cualquier origen para desarrollo
+app.use(cors({ origin: true, credentials: true }));
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
@@ -44,9 +44,10 @@ if (process.env.NODE_ENV === 'production') {
 // Iniciar servidor
 const start = async () => {
   await connectDB();
-  app.listen(PORT, () => {
+  app.listen(Number(PORT), '0.0.0.0', () => {
     console.log(`\n🎓 Sistema de Registro UTN`);
-    console.log(`   Servidor corriendo en http://localhost:${PORT}`);
+    console.log(`   Servidor corriendo en http://0.0.0.0:${PORT}`);
+    console.log(`   Accesible por IP en el puerto ${PORT}`);
     console.log(`   Base de datos: MongoDB local\n`);
   });
 };

@@ -18,6 +18,9 @@ router.get('/dashboard', async (_req: Request, res: Response) => {
       porCarrera,
       documentosStats,
       ultimosUploads,
+      porSexo,
+      porSede,
+      verificacionRegistro,
     ] = await Promise.all([
       // Total activos
       Student.countDocuments({ activo: true }),
@@ -83,9 +86,30 @@ router.get('/dashboard', async (_req: Request, res: Response) => {
 
       // Últimas importaciones
       UploadHistory.find().sort({ fecha: -1 }).limit(5),
+
+      // Por sexo
+      Student.aggregate([
+        { $match: { activo: true } },
+        { $group: { _id: { $ifNull: ['$sexo', ''] }, count: { $sum: 1 } } },
+        { $sort: { count: -1 } },
+      ]),
+
+      // Por sede
+      Student.aggregate([
+        { $match: { activo: true } },
+        { $group: { _id: { $ifNull: ['$sede', ''] }, count: { $sum: 1 } } },
+        { $sort: { count: -1 } },
+      ]),
+
+      // Verificación de registro
+      Promise.all([
+        Student.countDocuments({ activo: true, verificacionRegistro: true }),
+        Student.countDocuments({ activo: true, verificacionRegistro: { $ne: true } }),
+      ]),
     ]);
 
     const [tituloOk, tituloFalta, cedulaFOk, cedulaFFalta, cedulaROk, cedulaRFalta, todosCompletos] = documentosStats;
+    const [verificados, noVerificados] = verificacionRegistro;
 
     res.json({
       totalEstudiantes,
@@ -103,6 +127,18 @@ router.get('/dashboard', async (_req: Request, res: Response) => {
         carrera: item._id,
         cantidad: item.count,
       })),
+      porSexo: porSexo.map((item: any) => ({
+        sexo: item._id === 'M' ? 'Masculino' : item._id === 'F' ? 'Femenino' : 'No especificado',
+        cantidad: item.count,
+      })),
+      porSede: porSede.map((item: any) => ({
+        sede: item._id || 'Sin sede',
+        cantidad: item.count,
+      })),
+      verificacionRegistro: {
+        verificados,
+        noVerificados,
+      },
       documentos: {
         titulo: { completo: tituloOk, faltante: tituloFalta },
         cedulaFrente: { completo: cedulaFOk, faltante: cedulaFFalta },

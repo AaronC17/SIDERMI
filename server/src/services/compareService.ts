@@ -6,6 +6,52 @@ import {
   AvatarRow,
 } from './excelService';
 
+/** Normaliza texto para comparación: minúsculas, sin tildes, sin espacios extra */
+function normText(s: string): string {
+  return s
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim();
+}
+
+/**
+ * Dada la columna "Nombre" del corte (formato: "AP1 AP2 NOMBRE..."),
+ * intenta localizar un estudiante por nombre completo normalizado.
+ */
+async function findByFullName(rawNombre: string): Promise<IStudent | null> {
+  if (!rawNombre) return null;
+  const partes = rawNombre.split(' ').filter(p => p.length > 0);
+  if (partes.length < 2) return null;
+
+  // El corte viene como "AP1 AP2 NOMBRE" — probamos con 2 apellidos + nombre
+  const ap1 = partes[0];
+  const ap2 = partes.length >= 3 ? partes[1] : '';
+  const nombre = partes.length >= 3 ? partes.slice(2).join(' ') : partes[1];
+
+  // Buscar con regex insensible a mayúsculas/tildes usando los valores normalizados
+  const candidates = await Student.find({
+    activo: true,
+    primerApellido: { $exists: true, $ne: '' },
+  }).select('cedula nombre primerApellido segundoApellido');
+
+  const nAp1 = normText(ap1);
+  const nAp2 = normText(ap2);
+  const nNombre = normText(nombre);
+
+  for (const c of candidates) {
+    const cAp1 = normText(c.primerApellido || '');
+    const cAp2 = normText(c.segundoApellido || '');
+    const cNombre = normText(c.nombre || '');
+
+    // Coincidencia exacta AP1 + AP2 + inicio del nombre
+    if (cAp1 === nAp1 && (ap2 === '' || cAp2 === nAp2) && cNombre.startsWith(nNombre.split(' ')[0])) {
+      return c;
+    }
+  }
+  return null;
+}
+
 /** Parsea fechas en formato dd/mm/yyyy, mm/dd/yyyy, ISO, o serial Excel */
 function parseDate(val: any): Date | null {
   if (!val) return null;
@@ -104,7 +150,15 @@ export async function importarCorteMatriculados(
 
   for (const row of rows) {
     try {
-    const existing = await Student.findOne({ cedula: row.cedula });
+    // 1er intento: buscar por cédula
+    let existing: IStudent | null = await Student.findOne({ cedula: row.cedula });
+    let matchedBy = 'cédula';
+
+    // 2do intento: si la cédula no coincide, buscar por nombre completo normalizado
+    if (!existing && row.nombre) {
+      existing = await findByFullName(row.nombre);
+      if (existing) matchedBy = 'nombre';
+    }
 
     if (existing) {
       const updateData: any = {};
@@ -118,6 +172,11 @@ export async function importarCorteMatriculados(
         if (sexo) updateData.sexo = sexo;
       }
 
+      // Si se encontró por nombre y la cédula del corte parece válida, actualizarla
+      if (matchedBy === 'nombre' && row.cedula && row.cedula.length >= 8 && /^\d+$/.test(row.cedula)) {
+        updateData.cedula = row.cedula;
+      }
+
       if (!existing.boleta && row.boleta) updateData.boleta = row.boleta;
       if (!existing.monto && row.monto) updateData.monto = row.monto;
       if (!existing.fechaPago && row.fechaPago) updateData.fechaPago = parseDate(row.fechaPago);
@@ -128,7 +187,7 @@ export async function importarCorteMatriculados(
       if (row.moneda) updateData.moneda = row.moneda;
       if (corte) updateData.corteMatricula = corte;
 
-      // Solo actualizar nombre si el estudiante NO tiene apellidos (fue creado sin ellos)
+      // Completar apellidos si el registro no los tiene
       if (row.nombre && !existing.primerApellido) {
         const partes = row.nombre.split(' ').filter(p => p.length > 0);
         if (partes.length >= 3) {
@@ -142,51 +201,15 @@ export async function importarCorteMatriculados(
       }
 
       if (Object.keys(updateData).length > 0) {
-        await Student.updateOne({ cedula: row.cedula }, { $set: updateData });
+        await Student.updateOne({ _id: existing._id }, { $set: updateData });
         result.actualizados++;
-        result.detalles.push(`Actualizado: ${row.nombre || existing.nombre} (${row.cedula})`);
+        result.detalles.push(`Actualizado (por ${matchedBy}): ${row.nombre || existing.nombre} (${row.cedula})`);
       } else {
         result.existentes++;
       }
     } else {
-      // Nuevo estudiante - no estaba en aspirantes
-      const partes = row.nombre.split(' ').filter(p => p.length > 0);
-      let nombre = row.nombre;
-      let primerApellido = '';
-      let segundoApellido = '';
-
-      if (partes.length >= 3) {
-        primerApellido = partes[0];
-        segundoApellido = partes[1];
-        nombre = partes.slice(2).join(' ');
-      } else if (partes.length === 2) {
-        primerApellido = partes[0];
-        nombre = partes[1];
-      }
-
-      await Student.create({
-        cedula: row.cedula,
-        nombre,
-        primerApellido,
-        segundoApellido,
-        boleta: row.boleta,
-        moneda: row.moneda,
-        monto: row.monto,
-        fechaPago: parseDate(row.fechaPago) || null,
-        estadoPago: row.estadoPago,
-        tipoPago: row.tipoPago,
-        recibo: row.recibo,
-        montoPagado: row.montoPagado,
-        sexo: detectarSexo(nombre),
-        tipoMatricula: 'EXTRAORDINARIA',  // Nuevo en corte = no estaba en aspirantes = extraordinaria
-        matriculado: true,
-        corteMatricula: corte,
-        fuenteDatos: 'SIGU',
-        estadoAvatar: 'PENDIENTE',
-      });
-
-      result.nuevos++;
-      result.detalles.push(`Nuevo matriculado (${tipoMatricula}): ${row.nombre} (${row.cedula})`);
+      // Ni cédula ni nombre coinciden → se omite
+      result.detalles.push(`Omitido (sin coincidencia): ${row.nombre} (${row.cedula})`);
     }
     } catch (err: any) {
       result.detalles.push(`Error fila ${row.cedula}: ${err.message?.split(':')[0]}`);
