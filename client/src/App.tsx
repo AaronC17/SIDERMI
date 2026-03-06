@@ -9,6 +9,7 @@ import Upload from './pages/Upload';
 import Stats from './pages/Stats';
 import Templates from './pages/Templates';
 import DemoLocked from './pages/DemoLocked';
+import UploadDemo from './pages/UploadDemo';
 import Users from './pages/Users';
 
 const IS_DEMO = import.meta.env.VITE_DEMO_MODE === 'true';
@@ -21,7 +22,7 @@ function ProtectedRoutes() {
       <Route element={<Layout />}>
         <Route path="/" element={<Dashboard />} />
         <Route path="/estudiantes" element={IS_DEMO ? <DemoLocked /> : <Students />} />
-        <Route path="/cargar" element={IS_DEMO ? <DemoLocked /> : <Upload />} />
+        <Route path="/cargar" element={IS_DEMO ? <UploadDemo /> : <Upload />} />
         <Route path="/estadisticas" element={IS_DEMO ? <DemoLocked /> : <Stats />} />
         <Route path="/plantillas" element={IS_DEMO ? <DemoLocked /> : <Templates />} />
         <Route path="/usuarios" element={IS_DEMO ? <DemoLocked /> : <Users />} />
