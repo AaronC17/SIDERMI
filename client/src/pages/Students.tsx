@@ -391,7 +391,6 @@ export default function Students() {
                     s.documentos?.cedulaFrente?.estado,
                     s.documentos?.cedulaReverso?.estado,
                     s.documentos?.fotoCarnet?.estado,
-                    s.documentos?.formularioMatricula?.estado,
                   ];
                   const docsTotal = docs.length;
                   const docsCompletos = docs.filter(d => d === 'COMPLETO').length;
@@ -535,7 +534,7 @@ export default function Students() {
         <StudentEditModal
           student={editStudent}
           onClose={() => setEditStudent(null)}
-          onSaved={() => { setEditStudent(null); fetchData(); }}
+          onSaved={() => { setEditStudent(null); fetchData(); getDashboard().then(setStats).catch(() => {}); }}
         />
       )}
     </div>

@@ -10,6 +10,7 @@ import {
   ChevronRight,
   Bell,
   FileDown,
+  UserCog,
 } from 'lucide-react';
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
@@ -17,11 +18,12 @@ import { useAuth } from '../context/AuthContext';
 const IS_DEMO = import.meta.env.VITE_DEMO_MODE === 'true';
 
 const NAV_ITEMS = [
-  { to: '/', icon: LayoutDashboard, label: 'Dashboard', end: true, locked: false },
-  { to: '/estudiantes', icon: Users, label: 'Estudiantes', locked: true },
-  { to: '/cargar', icon: Upload, label: 'Cargar Datos', locked: true },
-  { to: '/plantillas', icon: FileDown, label: 'Plantillas Excel', locked: true },
-  { to: '/estadisticas', icon: BarChart3, label: 'Estadísticas', locked: true },
+  { to: '/', icon: LayoutDashboard, label: 'Dashboard', end: true, locked: false, adminOnly: false },
+  { to: '/estudiantes', icon: Users, label: 'Estudiantes', locked: true, adminOnly: false },
+  { to: '/cargar', icon: Upload, label: 'Cargar Datos', locked: true, adminOnly: false },
+  { to: '/plantillas', icon: FileDown, label: 'Plantillas Excel', locked: true, adminOnly: false },
+  { to: '/estadisticas', icon: BarChart3, label: 'Estadísticas', locked: true, adminOnly: false },
+  { to: '/usuarios', icon: UserCog, label: 'Usuarios', locked: false, adminOnly: true },
 ];
 
 const PAGE_TITLES: Record<string, string> = {
@@ -30,6 +32,7 @@ const PAGE_TITLES: Record<string, string> = {
   '/cargar': 'Cargar Datos',
   '/plantillas': 'Generador de Plantillas',
   '/estadisticas': 'Estadísticas y Reportes',
+  '/usuarios': 'Gestión de Usuarios',
 };
 
 export default function Layout() {
@@ -56,7 +59,9 @@ export default function Layout() {
       >
         {/* Brand header */}
         <div className="flex items-center gap-2 lg:gap-3 px-4 lg:px-5 h-[64px] lg:h-[72px] border-b border-white/[0.08]">
-          <img src="/24-UTN.png" alt="UTN" className="w-9 h-9 lg:w-11 lg:h-11 rounded-lg lg:rounded-xl object-contain bg-white/10 p-1 shadow-md shadow-black/15" />
+          <div className="w-9 h-9 lg:w-10 lg:h-10 rounded-lg lg:rounded-xl bg-white flex items-center justify-center shrink-0" style={{ boxShadow: '0 2px 10px rgba(0,0,0,0.3)' }}>
+            <img src="/24-UTN.png" alt="UTN" className="w-6 h-6 object-contain" />
+          </div>
           <div className="flex-1 min-w-0">
             <p className="text-xs lg:text-[14px] font-extrabold text-white tracking-wide leading-none">SIDERMI</p>
             <p className="text-[8px] lg:text-[9px] text-white/50 mt-1 font-semibold tracking-wider uppercase">Sistema de Registro y Matrícula</p>
@@ -71,7 +76,7 @@ export default function Layout() {
           <p className="text-[8px] lg:text-[9px] uppercase tracking-[0.15em] text-white/45 font-bold px-3 mb-2">
             Menú principal
           </p>
-          {NAV_ITEMS.map(item => {
+          {NAV_ITEMS.filter(item => !item.adminOnly || user?.rol === 'Administrador').map(item => {
             const isNavLocked = IS_DEMO && item.locked;
             return (
               <NavLink
