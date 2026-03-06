@@ -31,8 +31,6 @@ const DOC_LABELS: Record<string, string> = {
   cedulaFrente: 'Cédula (Frente)',
   cedulaReverso: 'Cédula (Reverso)',
   fotoCarnet: 'Foto Carnet',
-  formularioMatricula: 'Formulario Matrícula',
-  otros: 'Otros',
 };
 
 const DOC_ESTADOS = ['NO_REVISADO', 'COMPLETO', 'INCOMPLETO', 'FALTANTE'] as const;
@@ -101,23 +99,24 @@ export default function StudentEditModal({ student, onClose, onSaved }: Props) {
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
 
       <div
-        className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col"
+        className="relative bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden"
+        style={{ boxShadow: '0 25px 60px rgba(20,45,92,0.22), 0 8px 24px rgba(20,45,92,0.12)' }}
         onClick={e => e.stopPropagation()}
       >
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+        {/* Header — azul */}
+        <div className="flex items-center justify-between px-6 py-4" style={{ background: 'linear-gradient(120deg, #142D5C 0%, #1E4680 100%)' }}>
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-utn-blue/10 flex items-center justify-center text-utn-blue">
+            <div className="w-10 h-10 rounded-xl bg-white/10 border border-white/20 flex items-center justify-center text-white">
               <User size={20} />
             </div>
             <div>
-              <h3 className="font-bold text-slate-800">
+              <h3 className="font-bold text-white">
                 {student.nombre} {student.primerApellido} {student.segundoApellido}
               </h3>
-              <span className="text-xs font-mono text-slate-400">{student.cedula}</span>
+              <span className="text-xs font-mono text-white/50">{student.cedula}</span>
             </div>
           </div>
-          <button onClick={onClose} className="p-2 rounded-xl hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors">
+          <button onClick={onClose} className="p-2 rounded-xl hover:bg-white/10 text-white/60 hover:text-white transition-colors">
             <X size={20} />
           </button>
         </div>
@@ -126,62 +125,65 @@ export default function StudentEditModal({ student, onClose, onSaved }: Props) {
         <div className="flex-1 overflow-y-auto px-6 py-5 space-y-6">
 
           {/* ── Info de solo lectura ── */}
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-3 p-4 bg-slate-50 rounded-xl border border-slate-100">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3 p-4 bg-utn-blue/[0.04] rounded-xl border border-utn-blue/[0.10]">
             <div>
-              <p className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold mb-0.5">Carrera</p>
+              <p className="text-[10px] uppercase tracking-wider text-utn-blue/50 font-semibold mb-0.5">Carrera</p>
               <p className="text-sm font-medium text-slate-700">{student.codigoCarrera || student.codigoCarreraAvatar || '—'}</p>
             </div>
             <div>
-              <p className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold mb-0.5">Carnet</p>
+              <p className="text-[10px] uppercase tracking-wider text-utn-blue/50 font-semibold mb-0.5">Carnet</p>
               <p className="text-sm font-medium text-slate-700">{student.carnet || '—'}</p>
             </div>
             <div>
-              <p className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold mb-0.5">Tipo</p>
+              <p className="text-[10px] uppercase tracking-wider text-utn-blue/50 font-semibold mb-0.5">Tipo</p>
               <p className="text-sm font-medium text-slate-700">{student.tipoMatricula || '—'}</p>
             </div>
             <div>
-              <p className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold mb-0.5">Sexo</p>
+              <p className="text-[10px] uppercase tracking-wider text-utn-blue/50 font-semibold mb-0.5">Sexo</p>
               <p className="text-sm font-medium text-slate-700">{student.sexo === 'M' ? 'Masculino' : student.sexo === 'F' ? 'Femenino' : '—'}</p>
             </div>
             <div>
-              <p className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold mb-0.5">Fuente</p>
+              <p className="text-[10px] uppercase tracking-wider text-utn-blue/50 font-semibold mb-0.5">Fuente</p>
               <p className="text-sm font-medium text-slate-700">{student.fuenteDatos}</p>
             </div>
           </div>
 
           {/* ── Contacto (solo lectura) ── */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <div className="flex items-center gap-3 px-4 py-3 bg-slate-50 rounded-xl border border-slate-100">
-              <Mail size={14} className="text-slate-400 shrink-0" />
+            <div className="flex items-center gap-3 px-4 py-3 bg-utn-blue/[0.03] rounded-xl border border-utn-blue/[0.08]">
+              <Mail size={14} className="text-utn-blue/50 shrink-0" />
               <div>
-                <p className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Correo</p>
+                <p className="text-[10px] uppercase tracking-wider text-utn-blue/50 font-semibold">Correo</p>
                 <p className="text-sm text-slate-700">{student.correoElectronico || '—'}</p>
               </div>
             </div>
-            <div className="flex items-center gap-3 px-4 py-3 bg-slate-50 rounded-xl border border-slate-100">
-              <Phone size={14} className="text-slate-400 shrink-0" />
+            <div className="flex items-center gap-3 px-4 py-3 bg-utn-blue/[0.03] rounded-xl border border-utn-blue/[0.08]">
+              <Phone size={14} className="text-utn-blue/50 shrink-0" />
               <div>
-                <p className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Teléfono</p>
+                <p className="text-[10px] uppercase tracking-wider text-utn-blue/50 font-semibold">Teléfono</p>
                 <p className="text-sm text-slate-700">{student.telefono || '—'}</p>
               </div>
             </div>
           </div>
 
           {student.monto > 0 && (
-            <div className="px-4 py-3 bg-slate-50 rounded-xl border border-slate-100 text-sm text-slate-600">
-              <span className="font-semibold">Pago:</span> {student.moneda} {student.monto?.toLocaleString()} —{' '}
-              <span className="font-semibold">Recibo:</span> {student.recibo || '—'}
+            <div className="px-4 py-3 bg-utn-blue/[0.04] rounded-xl border border-utn-blue/[0.10] text-sm text-slate-600">
+              <span className="font-semibold text-utn-blue/80">Pago:</span> {student.moneda} {student.monto?.toLocaleString()} —{' '}
+              <span className="font-semibold text-utn-blue/80">Recibo:</span> {student.recibo || '—'}
             </div>
           )}
 
           {/* ── Datos editables ── */}
           <div>
-            <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-2">
-              <ClipboardList size={13} /> Datos Editables
+            <h4 className="text-xs font-bold text-utn-blue/70 uppercase tracking-wider mb-3 flex items-center gap-2">
+              <div className="w-5 h-5 rounded bg-utn-blue/10 flex items-center justify-center">
+                <ClipboardList size={11} className="text-utn-blue" />
+              </div>
+              Datos Editables
             </h4>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <label className="text-xs font-medium text-slate-500 mb-1 block">Estado Avatar</label>
+                <label className="text-xs font-medium text-utn-blue/70 mb-1 block">Estado Avatar</label>
                 <select
                   value={form.estadoAvatar}
                   onChange={e => setForm(f => ({ ...f, estadoAvatar: e.target.value as any }))}
@@ -191,7 +193,7 @@ export default function StudentEditModal({ student, onClose, onSaved }: Props) {
                 </select>
               </div>
               <div>
-                <label className="text-xs font-medium text-slate-500 mb-1 block">Código Carrera</label>
+                <label className="text-xs font-medium text-utn-blue/70 mb-1 block">Código Carrera</label>
                 <select
                   value={form.codigoCarreraManual}
                   onChange={e => setForm(f => ({ ...f, codigoCarreraManual: e.target.value }))}
@@ -204,7 +206,7 @@ export default function StudentEditModal({ student, onClose, onSaved }: Props) {
                 </select>
               </div>
               <div>
-                <label className="text-xs font-medium text-slate-500 mb-1 block">Sexo</label>
+                <label className="text-xs font-medium text-utn-blue/70 mb-1 block">Sexo</label>
                 <select
                   value={form.sexo}
                   onChange={e => setForm(f => ({ ...f, sexo: e.target.value as any }))}
@@ -217,7 +219,7 @@ export default function StudentEditModal({ student, onClose, onSaved }: Props) {
               </div>
             </div>
             <div className="mt-4">
-              <label className="text-xs font-medium text-slate-500 mb-1 block">Observaciones</label>
+              <label className="text-xs font-medium text-utn-blue/70 mb-1 block">Observaciones</label>
               <textarea
                 rows={2}
                 value={form.observaciones}
@@ -230,16 +232,19 @@ export default function StudentEditModal({ student, onClose, onSaved }: Props) {
 
           {/* ── Documentos ── */}
           <div>
-            <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-2">
-              <FileText size={13} /> Verificación de Documentos
+            <h4 className="text-xs font-bold text-utn-blue/70 uppercase tracking-wider mb-3 flex items-center gap-2">
+              <div className="w-5 h-5 rounded bg-utn-blue/10 flex items-center justify-center">
+                <FileText size={11} className="text-utn-blue" />
+              </div>
+              Verificación de Documentos
             </h4>
             <div className="space-y-1.5">
               {Object.entries(DOC_LABELS).map(([key, label]) => (
                 <div
                   key={key}
-                  className="grid grid-cols-[1fr_120px_1fr_70px] gap-2 items-center py-2.5 px-3 bg-slate-50/80 rounded-xl border border-slate-100/60"
+                  className="grid grid-cols-[1fr_120px_1fr_70px] gap-2 items-center py-2.5 px-3 bg-utn-blue/[0.025] rounded-xl border border-utn-blue/[0.07] hover:bg-utn-blue/[0.05] transition-colors"
                 >
-                  <span className="text-sm text-slate-700">{label}</span>
+                  <span className="text-sm text-slate-700 font-medium">{label}</span>
                   <select
                     value={docs[key]?.estado || 'NO_REVISADO'}
                     onChange={e =>
@@ -304,7 +309,7 @@ export default function StudentEditModal({ student, onClose, onSaved }: Props) {
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-slate-100 bg-slate-50/50 rounded-b-2xl">
+        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-utn-blue/[0.08] bg-utn-blue/[0.03] rounded-b-2xl">
           <button
             onClick={onClose}
             className="px-5 py-2.5 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-100 transition-colors"

@@ -13,6 +13,7 @@ router.get('/', async (req: Request, res: Response) => {
       carrera,
       buscar,
       docFaltante,
+      docPresente,
       page = '1',
       limit = '50',
       sort = 'primerApellido',
@@ -39,6 +40,12 @@ router.get('/', async (req: Request, res: Response) => {
     if (docFaltante) {
       const docField = `documentos.${docFaltante}.estado`;
       filter[docField] = { $ne: 'COMPLETO' };
+    }
+
+    // Filtrar por documento presente (COMPLETO)
+    if (docPresente) {
+      const docField = `documentos.${docPresente}.estado`;
+      filter[docField] = 'COMPLETO';
     }
 
     // Búsqueda por cédula — solo prefijo (debe empezar con el valor buscado)

@@ -80,17 +80,18 @@ export default function Layout() {
                 end={item.end}
                 onClick={() => setMobileOpen(false)}
                 className={({ isActive }) =>
-                  `group flex items-center gap-2 lg:gap-3 px-2 lg:px-3 py-1.5 lg:py-2 rounded-lg text-xs lg:text-[13.5px] font-semibold transition-all duration-150
+                  `group relative flex items-center gap-2 lg:gap-3 px-2 lg:px-3 py-1.5 lg:py-2 rounded-lg text-xs lg:text-[13.5px] font-semibold transition-all duration-150
                    ${isActive
-                    ? 'bg-white/[0.14] text-white shadow-sm'
+                    ? 'bg-white/[0.18] text-white shadow-sm'
                     : 'text-white/75 hover:bg-white/[0.08] hover:text-white'
                   }`
                 }
               >
                 {({ isActive }) => (
                   <>
+                    {isActive && <span className="absolute left-0 inset-y-[15%] w-[3px] bg-white rounded-r-full" />}
                     <div className={`w-6 h-6 lg:w-7 lg:h-7 rounded-md flex items-center justify-center transition-colors
-                      ${isActive ? 'bg-white/20 text-white' : 'text-white/60 group-hover:text-white'}`}>
+                      ${isActive ? 'bg-white/25 text-white' : 'text-white/60 group-hover:text-white'}`}>
                       <item.icon size={14} className="lg:w-4 lg:h-4" />
                     </div>
                     <span className="flex-1">{item.label}</span>
@@ -126,7 +127,7 @@ export default function Layout() {
       {/* ═══════ Main content ═══════ */}
       <div className="flex-1 lg:ml-[250px] xl:ml-[260px] min-w-0 flex flex-col">
         {/* Top bar */}
-        <header className="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-slate-200/70 h-14 lg:h-16 flex items-center gap-3 lg:gap-4 px-3 lg:px-6 xl:px-8">
+        <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-slate-200/70 h-14 lg:h-16 flex items-center gap-3 lg:gap-4 px-3 lg:px-6 xl:px-8" style={{boxShadow:'0 1px 2px rgba(0,0,0,0.05), 0 2px 12px rgba(20,45,92,0.08)'}}>
           <button
             className="lg:hidden p-2 -ml-2 rounded-lg hover:bg-slate-100 text-slate-500"
             onClick={() => setMobileOpen(true)}

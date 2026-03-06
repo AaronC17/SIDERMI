@@ -53,7 +53,7 @@ function StatCard({ icon: Icon, label, value, sub, color = 'text-utn-blue', bg =
   sub?: string; color?: string; bg?: string;
 }) {
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 shadow-md p-4 flex items-center gap-3">
+    <div className="bg-white rounded-2xl border border-slate-200 card p-4 flex items-center gap-3">
       <div className={`w-10 h-10 rounded-xl ${bg} flex items-center justify-center shrink-0`}>
         <Icon size={18} className={color} />
       </div>
@@ -70,7 +70,7 @@ function Section({ title, icon: Icon, children, badge }: {
   title: string; icon: React.ElementType; children: React.ReactNode; badge?: React.ReactNode;
 }) {
   return (
-    <div className="bg-white rounded-2xl shadow-md border border-slate-200 overflow-hidden">
+    <div className="bg-white rounded-2xl card border border-slate-200 overflow-hidden">
       <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Icon size={14} className="text-utn-blue" />
@@ -406,7 +406,7 @@ export default function Stats() {
 
       {/* PENDIENTES */}
       {view === 'pendientes' && (
-        <div className="bg-white rounded-2xl shadow-md border border-slate-200 overflow-hidden">
+        <div className="bg-white rounded-2xl card border border-slate-200 overflow-hidden">
           <div className="px-5 py-4 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center gap-3 justify-between">
             <div className="flex items-center gap-2">
               <ClipboardList size={15} className="text-utn-blue" />
@@ -491,7 +491,7 @@ export default function Stats() {
               </span>
             )}
           </div>
-          <div className="bg-white rounded-2xl shadow-md border border-slate-200 overflow-hidden">
+          <div className="bg-white rounded-2xl card border border-slate-200 overflow-hidden">
             <div className="overflow-x-auto">
               {docResults.length === 0 && !docLoading ? (
                 <div className="py-20 text-center">

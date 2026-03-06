@@ -17,6 +17,10 @@ import {
   UserCheck,
   UserX,
   Edit,
+  SlidersHorizontal,
+  FileText,
+  GraduationCap,
+  ClipboardList,
 } from 'lucide-react';
 import { getStudents, notificarEstudiante, getDashboard } from '../services/api';
 import type { Student, PaginatedResponse, DashboardStats } from '../types';
@@ -72,7 +76,7 @@ export default function Students() {
   const [estado, setEstado] = useState('');
   const [tipoMat, setTipoMat] = useState('');
   const [carrera, setCarrera] = useState('');
-  const [docFaltante, setDocFaltante] = useState('');
+  const [docFiltro, setDocFiltro] = useState(''); // formato: "falta:titulo" o "tiene:titulo"
   const [sort, setSort] = useState('primerApellido');
   const [order, setOrder] = useState<'asc' | 'desc'>('asc');
 
@@ -90,13 +94,17 @@ export default function Students() {
     if (estado) params.estado = estado;
     if (tipoMat) params.tipoMatricula = tipoMat;
     if (carrera) params.carrera = carrera;
-    if (docFaltante) params.docFaltante = docFaltante;
+    if (docFiltro) {
+      const [modo, doc] = docFiltro.split(':');
+      if (modo === 'falta') params.docFaltante = doc;
+      else if (modo === 'tiene') params.docPresente = doc;
+    }
     if (sort) { params.sort = sort; params.order = order; }
     getStudents(params)
       .then(setData)
       .catch(() => addToast('Error al cargar estudiantes', 'error'))
       .finally(() => setLoading(false));
-  }, [page, search, matriculado, estado, tipoMat, carrera, docFaltante, sort, order]);
+  }, [page, search, matriculado, estado, tipoMat, carrera, docFiltro, sort, order]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
@@ -105,10 +113,10 @@ export default function Students() {
   }, []);
 
   /* ── Derived ── */
-  const activeFilters = [estado, tipoMat, carrera, docFaltante].filter(Boolean).length;
+  const activeFilters = [estado, tipoMat, carrera, docFiltro].filter(Boolean).length;
 
   const clearAll = () => {
-    setSearch(''); setMatriculado(''); setEstado(''); setTipoMat(''); setCarrera(''); setDocFaltante('');
+    setSearch(''); setMatriculado(''); setEstado(''); setTipoMat(''); setCarrera(''); setDocFiltro('');
     setSort('primerApellido'); setOrder('asc'); setPage(1);
   };
 
@@ -150,42 +158,14 @@ export default function Students() {
       {/* ── Mini metric cards ── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {[
-          {
-            label: 'Total estudiantes',
-            value: stats?.totalEstudiantes ?? data?.pagination.total ?? '—',
-            icon: Users,
-            color: 'text-utn-blue',
-            bg: 'bg-blue-50',
-            border: 'border-blue-100',
-          },
-          {
-            label: 'Aspirantes',
-            value: stats?.aspirantesSinMatricula ?? '—',
-            icon: UserX,
-            color: 'text-amber-600',
-            bg: 'bg-amber-50',
-            border: 'border-amber-100',
-          },
-          {
-            label: 'Matriculados',
-            value: stats?.matriculados ?? '—',
-            icon: UserCheck,
-            color: 'text-emerald-600',
-            bg: 'bg-emerald-50',
-            border: 'border-emerald-100',
-          },
-          {
-            label: 'Docs completos',
-            value: stats?.documentos?.todosCompletos ?? '—',
-            icon: CheckCircle,
-            color: 'text-blue-500',
-            bg: 'bg-sky-50',
-            border: 'border-sky-100',
-          },
-        ].map(({ label, value, icon: Icon, color, bg, border }) => (
-          <div key={label} className={`bg-white rounded-xl border ${border} px-4 py-3 flex items-center gap-3 shadow-sm`}>
-            <div className={`w-9 h-9 rounded-lg ${bg} flex items-center justify-center shrink-0`}>
-              <Icon size={16} className={color} />
+          { label: 'Total estudiantes', value: stats?.totalEstudiantes ?? data?.pagination.total ?? '—', icon: Users },
+          { label: 'Aspirantes',        value: stats?.aspirantesSinMatricula ?? '—',                    icon: UserX },
+          { label: 'Matriculados',      value: stats?.matriculados ?? '—',                              icon: UserCheck },
+          { label: 'Docs completos',    value: stats?.documentos?.todosCompletos ?? '—',                icon: CheckCircle },
+        ].map(({ label, value, icon: Icon }) => (
+          <div key={label} className="bg-white rounded-xl border border-utn-blue/20 px-4 py-3 flex items-center gap-3 shadow-sm">
+            <div className="w-9 h-9 rounded-lg bg-utn-blue/[0.08] flex items-center justify-center shrink-0">
+              <Icon size={16} className="text-utn-blue" />
             </div>
             <div className="min-w-0">
               <p className="text-xl font-bold text-slate-800 leading-none">{value}</p>
@@ -196,7 +176,7 @@ export default function Students() {
       </div>
 
       {/* ── Matriculado / Aspirante segmented control ── */}
-      <div className="flex items-center gap-1.5 p-1 bg-white rounded-xl border border-slate-200/60 shadow-sm w-fit">
+      <div className="flex items-center gap-1.5 p-1 bg-white rounded-xl border border-utn-blue/15 shadow-sm w-fit">
         {([
           { val: '' as const,      label: 'Todos',           icon: Users,     count: null },
           { val: 'true' as const,  label: 'Matriculados',    icon: UserCheck, count: null },
@@ -221,89 +201,151 @@ export default function Students() {
       </div>
 
       {/* ── Search + Filters ── */}
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-200/60 p-3 space-y-2">
-        {/* Buscar por cédula */}
-        <div className="relative">
-          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-          <input
-            type="text"
-            placeholder="Buscar por cédula…"
-            value={search}
-            onChange={e => { setSearch(e.target.value); setPage(1); }}
-            className="w-full pl-9 pr-8 py-2 bg-slate-50 rounded-xl text-sm border border-slate-200 focus:border-utn-blue focus:ring-2 focus:ring-utn-blue/20 outline-none"
-          />
-          {search && (
-            <button onClick={() => { setSearch(''); setPage(1); }} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
-              <X size={13} />
+      <div className="bg-white rounded-2xl shadow-sm border border-utn-blue/10 overflow-hidden">
+        {/* Header bar */}
+        <div className="flex items-center justify-between px-4 py-2.5 border-b border-slate-100 bg-utn-blue/[0.025]">
+          <div className="flex items-center gap-2">
+            <SlidersHorizontal size={13} className="text-utn-blue/70" />
+            <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Filtros</span>
+            {activeFilters > 0 && (
+              <span className="px-1.5 py-0.5 rounded-full bg-utn-blue text-white text-[10px] font-bold leading-none">{activeFilters}</span>
+            )}
+          </div>
+          {activeFilters > 0 && (
+            <button
+              onClick={clearAll}
+              className="inline-flex items-center gap-1 text-[11px] font-semibold text-red-400 hover:text-red-600 transition-colors"
+            >
+              <X size={11} /> Limpiar filtros
             </button>
           )}
         </div>
 
-        {/* Filtros en línea */}
-        <div className="flex items-center gap-2 flex-wrap">
-          <select
-            value={estado}
-            onChange={e => { setEstado(e.target.value); setPage(1); }}
-            className={`px-2.5 py-1.5 rounded-lg text-xs font-medium border outline-none cursor-pointer transition-colors
-              ${estado ? 'bg-utn-blue/10 text-utn-blue border-utn-blue/30' : 'bg-white text-slate-500 border-slate-200 hover:border-slate-300'}`}
-          >
-            <option value="">Estado: Todos</option>
-            <option value="PENDIENTE">Pendiente</option>
-            <option value="COMPLETO">Completo</option>
-            <option value="NOTIFICADO">Notificado</option>
-            <option value="LLAMAR">Llamar</option>
-          </select>
+        <div className="p-3 space-y-2.5">
+          {/* Search */}
+          <div className="relative">
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-utn-blue/40" />
+            <input
+              type="text"
+              placeholder="Buscar por cédula o nombre…"
+              value={search}
+              onChange={e => { setSearch(e.target.value); setPage(1); }}
+              className="w-full pl-9 pr-8 py-2.5 bg-slate-50 rounded-xl text-sm border border-slate-200 focus:border-utn-blue focus:ring-2 focus:ring-utn-blue/15 outline-none transition-all placeholder:text-slate-300"
+            />
+            {search && (
+              <button onClick={() => { setSearch(''); setPage(1); }} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-300 hover:text-slate-500 transition-colors">
+                <X size={13} />
+              </button>
+            )}
+          </div>
 
-          <select
-            value={tipoMat}
-            onChange={e => { setTipoMat(e.target.value); setPage(1); }}
-            className={`px-2.5 py-1.5 rounded-lg text-xs font-medium border outline-none cursor-pointer transition-colors
-              ${tipoMat ? 'bg-utn-blue/10 text-utn-blue border-utn-blue/30' : 'bg-white text-slate-500 border-slate-200 hover:border-slate-300'}`}
-          >
-            <option value="">Tipo: Todos</option>
-            <option value="ORDINARIA">Ordinaria</option>
-            <option value="EXTRAORDINARIA">Extraordinaria</option>
-          </select>
+          {/* Filter selects grid */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
+            {/* Estado */}
+            <div className="flex flex-col gap-1">
+              <label className="flex items-center gap-1 text-[10px] font-semibold text-slate-400 uppercase tracking-wider px-0.5">
+                <ClipboardList size={10} /> Estado
+              </label>
+              <div className={`relative rounded-xl border transition-all ${estado ? 'border-utn-blue/40 bg-utn-blue/[0.04]' : 'border-slate-200 bg-slate-50 hover:border-slate-300'}`}>
+                <select
+                  value={estado}
+                  onChange={e => { setEstado(e.target.value); setPage(1); }}
+                  className={`w-full px-3 py-2 text-xs font-medium outline-none cursor-pointer bg-transparent appearance-none pr-7 rounded-xl transition-colors
+                    ${estado ? 'text-utn-blue font-semibold' : 'text-slate-500'}`}
+                >
+                  <option value="">Todos</option>
+                  <option value="PENDIENTE">Pendiente</option>
+                  <option value="COMPLETO">Completo</option>
+                  <option value="NOTIFICADO">Notificado</option>
+                </select>
+                <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400">
+                  <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 3.5L5 6.5L8 3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                </span>
+              </div>
+            </div>
 
-          <select
-            value={carrera}
-            onChange={e => { setCarrera(e.target.value); setPage(1); }}
-            className={`px-2.5 py-1.5 rounded-lg text-xs font-medium border outline-none cursor-pointer transition-colors
-              ${carrera ? 'bg-utn-blue/10 text-utn-blue border-utn-blue/30' : 'bg-white text-slate-500 border-slate-200 hover:border-slate-300'}`}
-          >
-            <option value="">Carrera: Todas</option>
-            {['IEA','IEL','ILE','IPRI','GEHG','GAE','GEC','ITI','COFI','DG','CC-AA','AA'].map(c => (
-              <option key={c} value={c}>{c}</option>
-            ))}
-          </select>
+            {/* Tipo matrícula */}
+            <div className="flex flex-col gap-1">
+              <label className="flex items-center gap-1 text-[10px] font-semibold text-slate-400 uppercase tracking-wider px-0.5">
+                <ClipboardList size={10} /> Tipo matrícula
+              </label>
+              <div className={`relative rounded-xl border transition-all ${tipoMat ? 'border-utn-blue/40 bg-utn-blue/[0.04]' : 'border-slate-200 bg-slate-50 hover:border-slate-300'}`}>
+                <select
+                  value={tipoMat}
+                  onChange={e => { setTipoMat(e.target.value); setPage(1); }}
+                  className={`w-full px-3 py-2 text-xs font-medium outline-none cursor-pointer bg-transparent appearance-none pr-7 rounded-xl transition-colors
+                    ${tipoMat ? 'text-utn-blue font-semibold' : 'text-slate-500'}`}
+                >
+                  <option value="">Todos</option>
+                  <option value="ORDINARIA">Ordinaria</option>
+                  <option value="EXTRAORDINARIA">Extraordinaria</option>
+                </select>
+                <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400">
+                  <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 3.5L5 6.5L8 3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                </span>
+              </div>
+            </div>
 
-          <select
-            value={docFaltante}
-            onChange={e => { setDocFaltante(e.target.value); setPage(1); }}
-            className={`px-2.5 py-1.5 rounded-lg text-xs font-medium border outline-none cursor-pointer transition-colors
-              ${docFaltante ? 'bg-utn-blue/10 text-utn-blue border-utn-blue/30' : 'bg-white text-slate-500 border-slate-200 hover:border-slate-300'}`}
-          >
-            <option value="">Doc: Cualquiera</option>
-            <option value="titulo">Título</option>
-            <option value="cedulaFrente">Céd. Frente</option>
-            <option value="cedulaReverso">Céd. Reverso</option>
-            <option value="fotoCarnet">Foto</option>
-            <option value="formularioMatricula">Formulario</option>
-          </select>
+            {/* Carrera */}
+            <div className="flex flex-col gap-1">
+              <label className="flex items-center gap-1 text-[10px] font-semibold text-slate-400 uppercase tracking-wider px-0.5">
+                <GraduationCap size={10} /> Carrera
+              </label>
+              <div className={`relative rounded-xl border transition-all ${carrera ? 'border-utn-blue/40 bg-utn-blue/[0.04]' : 'border-slate-200 bg-slate-50 hover:border-slate-300'}`}>
+                <select
+                  value={carrera}
+                  onChange={e => { setCarrera(e.target.value); setPage(1); }}
+                  className={`w-full px-3 py-2 text-xs font-medium outline-none cursor-pointer bg-transparent appearance-none pr-7 rounded-xl transition-colors
+                    ${carrera ? 'text-utn-blue font-semibold' : 'text-slate-500'}`}
+                >
+                  <option value="">Todas</option>
+                  {['IEA','IEL','ILE','IPRI','GEHG','GAE','GEC','ITI','COFI','DG','CC-AA','AA'].map(c => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
+                <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400">
+                  <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 3.5L5 6.5L8 3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                </span>
+              </div>
+            </div>
 
-          {activeFilters > 0 && (
-            <button
-              onClick={clearAll}
-              className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 border border-red-100 rounded-lg transition-colors"
-            >
-              <X size={12} /> Limpiar
-            </button>
-          )}
+            {/* Documento */}
+            <div className="flex flex-col gap-1">
+              <label className="flex items-center gap-1 text-[10px] font-semibold text-slate-400 uppercase tracking-wider px-0.5">
+                <FileText size={10} /> Documento
+              </label>
+              <div className={`relative rounded-xl border transition-all ${docFiltro ? 'border-utn-blue/40 bg-utn-blue/[0.04]' : 'border-slate-200 bg-slate-50 hover:border-slate-300'}`}>
+                <select
+                  value={docFiltro}
+                  onChange={e => { setDocFiltro(e.target.value); setPage(1); }}
+                  className={`w-full px-3 py-2 text-xs font-medium outline-none cursor-pointer bg-transparent appearance-none pr-7 rounded-xl transition-colors
+                    ${docFiltro ? 'text-utn-blue font-semibold' : 'text-slate-500'}`}
+                >
+                  <option value="">Cualquiera</option>
+                  <optgroup label="── Tiene ──">
+                    <option value="tiene:titulo">Tiene: Título</option>
+                    <option value="tiene:cedulaFrente">Tiene: Céd. Frente</option>
+                    <option value="tiene:cedulaReverso">Tiene: Céd. Reverso</option>
+                    <option value="tiene:fotoCarnet">Tiene: Foto</option>
+                  </optgroup>
+                  <optgroup label="── Le falta ──">
+                    <option value="falta:titulo">Le falta: Título</option>
+                    <option value="falta:cedulaFrente">Le falta: Céd. Frente</option>
+                    <option value="falta:cedulaReverso">Le falta: Céd. Reverso</option>
+                    <option value="falta:fotoCarnet">Le falta: Foto</option>
+                  </optgroup>
+                </select>
+                <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400">
+                  <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 3.5L5 6.5L8 3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                </span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
       {/* ── Table ── */}
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-200/60 overflow-hidden" style={{boxShadow: '0 1px 3px rgba(0,0,0,0.04), 0 4px 16px rgba(0,0,0,0.06)'}}>
+      <div className="bg-white rounded-2xl shadow-sm border border-slate-200/60 overflow-hidden" style={{borderTop: '2px solid rgba(20,45,92,0.15)'}}>
         {loading ? (
           <div className="flex items-center justify-center py-20">
             <div className="w-6 h-6 border-2 border-slate-200 border-t-utn-blue rounded-full animate-spin" />
@@ -358,7 +400,7 @@ export default function Students() {
                     <tr key={s._id} className="hover:bg-blue-50/40 transition-colors duration-100 group">
                       {/* Cédula */}
                       <td className="px-4 py-2.5">
-                        <span className="font-mono text-[11px] font-bold text-slate-600 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-md tracking-wide whitespace-nowrap">
+                        <span className="font-mono text-[11px] font-bold text-utn-blue/80 bg-utn-blue/[0.06] border border-utn-blue/15 px-2 py-0.5 rounded-md tracking-wide whitespace-nowrap">
                           {formatCedula(s.cedula)}
                         </span>
                       </td>

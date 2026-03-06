@@ -431,7 +431,7 @@ export default function Templates() {
             'hover:border-amber-200';
 
           return (
-            <div key={tpl.key} className={`bg-white rounded-2xl shadow-sm border border-slate-200/60 flex flex-col transition-colors ${borderActive}`}>
+            <div key={tpl.key} className={`bg-white rounded-2xl card-flat border border-slate-200/60 flex flex-col transition-colors ${borderActive}`}>
               {/* Card header */}
               <div className="p-5 pb-0">
                 <div className="flex items-center gap-3">
@@ -502,7 +502,7 @@ export default function Templates() {
       </div>
 
       {/* Career reference table */}
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-200/60">
+      <div className="bg-white rounded-2xl card-flat border border-slate-200/60">
         <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2">
           <FileSpreadsheet size={15} className="text-utn-blue" />
           <h3 className="font-semibold text-slate-800 text-sm">Códigos de Carrera — Sede del Pacífico</h3>
