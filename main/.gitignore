@@ -1,0 +1,95 @@
+# ====================================================================
+# .gitignore para SIDERMI
+# ====================================================================
+
+# Node.js
+node_modules/
+dist/
+build/
+.env
+.env.local
+
+# Server data (sensitive / generated)
+server/documents/
+server/downloads/
+server/uploads/
+
+# Archivos Excel generados
+*.xlsm
+*.xlsx
+*.xls
+!Automatizador_Matricula.xlsm
+
+# Archivos temporales de Excel
+~$*.xls*
+*.tmp
+
+# Carpetas de datos (contienen información sensible)
+Datos_SIGU/*.xlsx
+Datos_SIGU/*.xls
+Datos_Manual/*.xlsx
+Datos_Manual/*.xls
+Reportes/*.xlsx
+Reportes/*.xls
+Historial/*.xlsx
+Historial/*.xls
+
+# Mantener las carpetas pero no su contenido
+!Datos_SIGU/.gitkeep
+!Datos_Manual/.gitkeep
+!Reportes/.gitkeep
+!Historial/.gitkeep
+
+# Archivos de respaldo de Excel
+*.xlk
+
+# Archivos de recuperación automática de Excel
+~*.tmp
+
+# Configuración local (puede contener rutas específicas del usuario)
+Configuracion_Local.txt
+
+# Logs y archivos temporales
+*.log
+*.bak
+*.swp
+*~
+
+# Archivos de sistema Windows
+Thumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Archivos de sistema macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Archivos de Visual Studio / VS Code
+.vscode/
+.vs/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Archivos de PowerShell
+*.ps1.log
+
+# Archivos de caché
+__pycache__/
+*.pyc
+*.pyo
+
+# Archivos de configuración específicos del usuario
+*.local
+.env
+
+# Documentos de prueba
+test_*.xlsx
+prueba_*.xlsx
+demo_*.xlsx
+
+# Archivos temporales de Outlook
+*.ost
+*.pst

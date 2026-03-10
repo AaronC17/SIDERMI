@@ -3,6 +3,7 @@ import Student from '../models/Student';
 import UploadHistory from '../models/UploadHistory';
 import path from 'path';
 import { generarZipCompletos, getEstudiantesPendientes } from '../services/zipService';
+import { registrarAuditoria, auditFromReq } from '../services/auditService';
 
 const router = Router();
 
@@ -196,7 +197,7 @@ router.get('/por-documento/:tipo', async (req: Request, res: Response) => {
 });
 
 // POST /api/stats/descargar-completos - Generar y descargar ZIP de expedientes completos
-router.post('/descargar-completos', async (_req: Request, res: Response) => {
+router.post('/descargar-completos', async (req: Request, res: Response) => {
   try {
     const outputDir = path.join(__dirname, '../../downloads');
     const result = await generarZipCompletos(outputDir);
@@ -206,6 +207,15 @@ router.post('/descargar-completos', async (_req: Request, res: Response) => {
         error: 'No hay estudiantes con todos los documentos completos para descargar',
       });
     }
+
+    const { usuario, ip } = auditFromReq(req);
+    registrarAuditoria({
+      usuario, ip,
+      accion: 'EXPORTAR',
+      entidad: 'zip',
+      entidadId: path.basename(result.archivoZip),
+      detalle: `ZIP generado con ${result.totalEstudiantes} expedientes completos`,
+    });
 
     res.download(result.archivoZip, path.basename(result.archivoZip), (err) => {
       if (err) {

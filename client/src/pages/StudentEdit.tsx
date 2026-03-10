@@ -95,11 +95,11 @@ export default function StudentEditModal({ student, onClose, onSaved }: Props) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4" onClick={onClose}>
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
 
       <div
-        className="relative bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden"
+        className="relative bg-white w-full sm:rounded-2xl sm:max-w-2xl max-h-[95dvh] sm:max-h-[90vh] flex flex-col overflow-hidden rounded-t-2xl"
         style={{ boxShadow: '0 25px 60px rgba(20,45,92,0.22), 0 8px 24px rgba(20,45,92,0.12)' }}
         onClick={e => e.stopPropagation()}
       >
@@ -122,10 +122,10 @@ export default function StudentEditModal({ student, onClose, onSaved }: Props) {
         </div>
 
         {/* Body */}
-        <div className="flex-1 overflow-y-auto px-6 py-5 space-y-6">
+        <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-5 space-y-5">
 
           {/* ── Info de solo lectura ── */}
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-3 p-4 bg-utn-blue/[0.04] rounded-xl border border-utn-blue/[0.10]">
+          <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 p-3 sm:p-4 bg-utn-blue/[0.04] rounded-xl border border-utn-blue/[0.10]">
             <div>
               <p className="text-[10px] uppercase tracking-wider text-utn-blue/50 font-semibold mb-0.5">Carrera</p>
               <p className="text-sm font-medium text-slate-700">{student.codigoCarrera || student.codigoCarreraAvatar || '—'}</p>
@@ -240,50 +240,57 @@ export default function StudentEditModal({ student, onClose, onSaved }: Props) {
             </h4>
             <div className="space-y-1.5">
               {Object.entries(DOC_LABELS).map(([key, label]) => (
-                <div
-                  key={key}
-                  className="grid grid-cols-[1fr_120px_1fr_70px] gap-2 items-center py-2.5 px-3 bg-utn-blue/[0.025] rounded-xl border border-utn-blue/[0.07] hover:bg-utn-blue/[0.05] transition-colors"
-                >
-                  <span className="text-sm text-slate-700 font-medium">{label}</span>
-                  <select
-                    value={docs[key]?.estado || 'NO_REVISADO'}
-                    onChange={e =>
-                      setDocs(d => ({
-                        ...d,
-                        [key]: { ...d[key], estado: e.target.value as typeof DOC_ESTADOS[number] },
-                      }))
-                    }
-                    className={`px-2 py-1.5 rounded-lg text-xs font-semibold border-0 outline-none cursor-pointer ${DOC_ESTADO_STYLE[docs[key]?.estado || 'NO_REVISADO']}`}
-                  >
-                    {DOC_ESTADOS.map(e => (
-                      <option key={e} value={e}>{e.replace('_', ' ')}</option>
-                    ))}
-                  </select>
-                  <input
-                    placeholder="Observación…"
-                    value={docs[key]?.observacion || ''}
-                    onChange={e =>
-                      setDocs(d => ({
-                        ...d,
-                        [key]: { ...d[key], observacion: e.target.value },
-                      }))
-                    }
-                    className="px-2 py-1.5 bg-white rounded-lg text-xs border border-slate-200 focus:border-utn-blue outline-none"
-                  />
-                  <label className="inline-flex items-center justify-center gap-1 px-2 py-1.5 text-xs font-medium text-utn-blue bg-utn-blue/5 rounded-lg hover:bg-utn-blue/10 cursor-pointer transition-colors border border-utn-blue/10">
-                    <UploadIcon size={11} />
-                    {uploading === key ? '…' : 'Subir'}
+                <div key={key}>
+                  {/* Mobile: stacked card */}
+                  <div className="sm:hidden p-3 bg-utn-blue/[0.025] rounded-xl border border-utn-blue/[0.07] space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-sm font-medium text-slate-700 leading-tight">{label}</span>
+                      <select
+                        value={docs[key]?.estado || 'NO_REVISADO'}
+                        onChange={e => setDocs(d => ({ ...d, [key]: { ...d[key], estado: e.target.value as typeof DOC_ESTADOS[number] } }))}
+                        className={`shrink-0 px-2 py-1 rounded-lg text-xs font-semibold border-0 outline-none cursor-pointer ${DOC_ESTADO_STYLE[docs[key]?.estado || 'NO_REVISADO']}`}
+                      >
+                        {DOC_ESTADOS.map(e => <option key={e} value={e}>{e.replace('_', ' ')}</option>)}
+                      </select>
+                    </div>
+                    <div className="flex gap-2">
+                      <input
+                        placeholder="Observación…"
+                        value={docs[key]?.observacion || ''}
+                        onChange={e => setDocs(d => ({ ...d, [key]: { ...d[key], observacion: e.target.value } }))}
+                        className="flex-1 px-2.5 py-1.5 bg-white rounded-lg text-xs border border-slate-200 focus:border-utn-blue outline-none min-w-0"
+                      />
+                      <label className="inline-flex items-center justify-center gap-1 px-3 py-1.5 text-xs font-semibold text-utn-blue bg-utn-blue/5 rounded-lg hover:bg-utn-blue/10 cursor-pointer transition-colors border border-utn-blue/10 shrink-0">
+                        <UploadIcon size={11} />
+                        {uploading === key ? '…' : 'Subir'}
+                        <input type="file" accept=".pdf,.jpg,.png,.doc,.docx" className="hidden"
+                          onChange={e => { const f = e.target.files?.[0]; if (f) handleFileUpload(key, f); e.target.value = ''; }} />
+                      </label>
+                    </div>
+                  </div>
+                  {/* Desktop: single row */}
+                  <div className="hidden sm:grid grid-cols-[1fr_120px_1fr_70px] gap-2 items-center py-2.5 px-3 bg-utn-blue/[0.025] rounded-xl border border-utn-blue/[0.07] hover:bg-utn-blue/[0.05] transition-colors">
+                    <span className="text-sm text-slate-700 font-medium">{label}</span>
+                    <select
+                      value={docs[key]?.estado || 'NO_REVISADO'}
+                      onChange={e => setDocs(d => ({ ...d, [key]: { ...d[key], estado: e.target.value as typeof DOC_ESTADOS[number] } }))}
+                      className={`px-2 py-1.5 rounded-lg text-xs font-semibold border-0 outline-none cursor-pointer ${DOC_ESTADO_STYLE[docs[key]?.estado || 'NO_REVISADO']}`}
+                    >
+                      {DOC_ESTADOS.map(e => <option key={e} value={e}>{e.replace('_', ' ')}</option>)}
+                    </select>
                     <input
-                      type="file"
-                      accept=".pdf,.jpg,.png,.doc,.docx"
-                      className="hidden"
-                      onChange={e => {
-                        const f = e.target.files?.[0];
-                        if (f) handleFileUpload(key, f);
-                        e.target.value = '';
-                      }}
+                      placeholder="Observación…"
+                      value={docs[key]?.observacion || ''}
+                      onChange={e => setDocs(d => ({ ...d, [key]: { ...d[key], observacion: e.target.value } }))}
+                      className="px-2 py-1.5 bg-white rounded-lg text-xs border border-slate-200 focus:border-utn-blue outline-none"
                     />
-                  </label>
+                    <label className="inline-flex items-center justify-center gap-1 px-2 py-1.5 text-xs font-medium text-utn-blue bg-utn-blue/5 rounded-lg hover:bg-utn-blue/10 cursor-pointer transition-colors border border-utn-blue/10">
+                      <UploadIcon size={11} />
+                      {uploading === key ? '…' : 'Subir'}
+                      <input type="file" accept=".pdf,.jpg,.png,.doc,.docx" className="hidden"
+                        onChange={e => { const f = e.target.files?.[0]; if (f) handleFileUpload(key, f); e.target.value = ''; }} />
+                    </label>
+                  </div>
                 </div>
               ))}
             </div>

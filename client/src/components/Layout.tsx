@@ -11,8 +11,9 @@ import {
   Bell,
   FileDown,
   UserCog,
+  ScrollText,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 
 const IS_DEMO = import.meta.env.VITE_DEMO_MODE === 'true';
@@ -24,6 +25,7 @@ const NAV_ITEMS = [
   { to: '/plantillas', icon: FileDown, label: 'Plantillas Excel', locked: true, adminOnly: false },
   { to: '/estadisticas', icon: BarChart3, label: 'Estadísticas', locked: true, adminOnly: false },
   { to: '/usuarios', icon: UserCog, label: 'Usuarios', locked: false, adminOnly: true },
+  { to: '/auditoria', icon: ScrollText, label: 'Auditoría', locked: false, adminOnly: true },
 ];
 
 const PAGE_TITLES: Record<string, string> = {
@@ -33,13 +35,27 @@ const PAGE_TITLES: Record<string, string> = {
   '/plantillas': 'Generador de Plantillas',
   '/estadisticas': 'Estadísticas y Reportes',
   '/usuarios': 'Gestión de Usuarios',
+  '/auditoria': 'Registro de Auditoría',
 };
 
 export default function Layout() {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
+  const notifRef = useRef<HTMLDivElement>(null);
   const { user, logout } = useAuth();
   const location = useLocation();
   const pageTitle = PAGE_TITLES[location.pathname] || '';
+
+  const visibleNavItems = NAV_ITEMS.filter(item => !item.adminOnly || user?.rol === 'Administrador');
+
+  useEffect(() => {
+    if (!notifOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (notifRef.current && !notifRef.current.contains(e.target as Node)) setNotifOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [notifOpen]);
 
   return (
     <div className="flex min-h-screen bg-utn-surface">
@@ -58,7 +74,7 @@ export default function Layout() {
           ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}`}
       >
         {/* Brand header */}
-        <div className="flex items-center gap-2 lg:gap-3 px-4 lg:px-5 h-[64px] lg:h-[72px] border-b border-white/[0.08]">
+        <div className="flex items-center gap-2 lg:gap-3 px-4 lg:px-5 h-14 lg:h-16 border-b border-white/[0.08]">
           <div className="w-9 h-9 lg:w-10 lg:h-10 rounded-lg lg:rounded-xl bg-white flex items-center justify-center shrink-0" style={{ boxShadow: '0 2px 10px rgba(0,0,0,0.3)' }}>
             <img src="/24-UTN.png" alt="UTN" className="w-6 h-6 object-contain" />
           </div>
@@ -140,17 +156,48 @@ export default function Layout() {
             <Menu size={18} />
           </button>
 
-          {/* Page title (desktop) */}
-          <h1 className="hidden lg:block text-base xl:text-lg font-bold text-slate-800">{pageTitle}</h1>
+          {/* Page title */}
+          <h1 className="text-sm font-bold text-slate-800 lg:text-base xl:text-lg">{pageTitle}</h1>
 
           <div className="flex-1" />
 
           {/* Right side */}
           <div className="flex items-center gap-2">
-            <button className="p-2 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors relative">
-              <Bell size={18} />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-sky-400 rounded-full" />
-            </button>
+            <div className="relative" ref={notifRef}>
+              <button
+                onClick={() => setNotifOpen(o => !o)}
+                className="p-2 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors relative"
+              >
+                <Bell size={18} />
+                <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-sky-400 rounded-full" />
+              </button>
+              {notifOpen && (
+                <div className="absolute right-0 top-full mt-2 w-64 bg-white border border-slate-200 rounded-xl shadow-lg z-50 overflow-hidden">
+                  <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
+                    <p className="text-xs font-bold text-slate-700 tracking-wide">SIDERMI v2.0.0</p>
+                    <button onClick={() => setNotifOpen(false)} className="p-1 rounded-lg text-slate-300 hover:text-slate-500 transition-colors">
+                      <X size={13} />
+                    </button>
+                  </div>
+                  <ul className="px-4 py-3 space-y-2.5">
+                    {[
+                      'Carga masiva de expedientes',
+                      'Estadísticas y gráficas',
+                      'Descarga de expedientes ZIP',
+                      'Notificaciones por correo',
+                    ].map(item => (
+                      <li key={item} className="flex items-start gap-2 text-[11px] text-slate-500">
+                        <span className="mt-[5px] w-1 h-1 rounded-full bg-slate-300 shrink-0" />
+                        {item}
+                      </li>
+                    ))}
+                  </ul>
+                  <div className="px-4 py-2 border-t border-slate-100">
+                    <p className="text-[10px] text-slate-300 font-medium">Última actualización: junio 2025</p>
+                  </div>
+                </div>
+              )}
+            </div>
             <div className="hidden sm:flex items-center gap-2 ml-2 pl-3 border-l border-slate-200">
               <div className="w-2 h-2 rounded-full bg-emerald-400" />
               <span className="text-xs text-slate-400 font-medium">Sistema activo</span>
@@ -159,10 +206,53 @@ export default function Layout() {
         </header>
 
         {/* Page content */}
-        <main className="flex-1 p-3 md:p-4 lg:p-6 xl:p-8 max-w-[1440px] mx-auto w-full">
+        <main className="flex-1 p-3 md:p-4 lg:p-6 xl:p-8 max-w-[1440px] mx-auto w-full pb-20 lg:pb-8">
           <Outlet />
         </main>
       </div>
+
+      {/* ═══ Bottom Tab Bar — mobile only ═══ */}
+      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-slate-200"
+        style={{ boxShadow: '0 -2px 12px rgba(20,45,92,0.10)', paddingBottom: 'env(safe-area-inset-bottom)' }}>
+        <div className="flex items-stretch">
+          {visibleNavItems.slice(0, 5).map(item => {
+            return (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                end={item.end}
+                onClick={() => setMobileOpen(false)}
+                className={({ isActive: a }) =>
+                  `flex-1 flex flex-col items-center justify-center py-2 gap-0.5 text-[10px] font-semibold transition-colors min-h-[56px]
+                   ${a ? 'text-utn-blue' : 'text-slate-400'}`
+                }
+              >
+                {({ isActive: a }) => (
+                  <>
+                    <div className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all
+                      ${a ? 'bg-utn-blue/10 text-utn-blue' : 'text-slate-400'}`}>
+                      <item.icon size={18} />
+                    </div>
+                    <span className={`leading-none ${a ? 'text-utn-blue' : 'text-slate-400'}`}>
+                      {item.label.split(' ')[0]}
+                    </span>
+                  </>
+                )}
+              </NavLink>
+            );
+          })}
+          {/* Logout button in bottom bar */}
+          <button
+            onClick={logout}
+            className="flex-1 flex flex-col items-center justify-center py-2 gap-0.5 text-[10px] font-semibold text-slate-400 min-h-[56px]"
+          >
+            <div className="w-8 h-8 rounded-xl flex items-center justify-center">
+              <LogOut size={18} />
+            </div>
+            <span className="leading-none">Salir</span>
+          </button>
+        </div>
+      </nav>
     </div>
   );
 }

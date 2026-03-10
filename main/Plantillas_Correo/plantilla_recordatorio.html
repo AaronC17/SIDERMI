@@ -1,0 +1,86 @@
+<html>
+<head>
+<style>
+body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    font-size: 14px;
+    color: #333;
+    line-height: 1.6;
+    max-width: 600px;
+    margin: 0 auto;
+}
+.header {
+    background-color: #003366;
+    color: white;
+    padding: 20px;
+    text-align: center;
+    border-radius: 8px 8px 0 0;
+}
+.content {
+    padding: 25px;
+    background-color: #f9f9f9;
+    border: 1px solid #ddd;
+}
+.docs-list {
+    background: white;
+    padding: 15px;
+    border-left: 4px solid #cc0000;
+    margin: 15px 0;
+}
+.footer {
+    background-color: #003366;
+    color: white;
+    padding: 15px;
+    text-align: center;
+    font-size: 12px;
+    border-radius: 0 0 8px 8px;
+}
+.highlight {
+    color: #cc0000;
+    font-weight: bold;
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+    <h2>Departamento de Registro y Admisión</h2>
+</div>
+
+<div class="content">
+    <p>Estimado(a) <strong>{NOMBRE_ESTUDIANTE}</strong>,</p>
+    
+    <p>Le informamos que su proceso de matrícula para la carrera de 
+    <strong>{CARRERA}</strong> en la sede <strong>{SEDE}</strong> 
+    presenta documentos pendientes de entrega.</p>
+    
+    <div class="docs-list">
+        <p class="highlight">Documentos pendientes:</p>
+        <ul>
+            {LISTA_DOCUMENTOS}
+        </ul>
+    </div>
+    
+    <p>Le solicitamos amablemente presentar los documentos indicados 
+    a la mayor brevedad posible para completar su proceso de matrícula.</p>
+    
+    <p><strong>Información importante:</strong></p>
+    <ul>
+        <li>Puede entregar los documentos en las oficinas de Registro de su sede.</li>
+        <li>Los documentos deben ser originales o copias certificadas.</li>
+        <li>El horario de atención es de lunes a viernes de 8:00 a.m. a 4:00 p.m.</li>
+    </ul>
+    
+    <p>Si tiene alguna consulta, no dude en contactarnos.</p>
+    
+    <p>Atentamente,<br>
+    <strong>{FIRMA}</strong></p>
+</div>
+
+<div class="footer">
+    <p>Este es un correo automático del Sistema de Gestión de Matrícula.<br>
+    Fecha de generación: {FECHA}</p>
+</div>
+
+</body>
+</html>

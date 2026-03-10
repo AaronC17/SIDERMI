@@ -35,3 +35,26 @@
 
 /* Focus ring utility */
 .focus-ring { @apply outline-none focus:ring-2 focus:ring-utn-blue/30 focus:border-utn-blue; }
+
+/* Mobile: hide scrollbar but keep scroll */
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* Card utility */
+.card { transition: box-shadow 0.2s ease; }
+.card:hover { box-shadow: 0 4px 20px rgba(20,45,92,0.10); }
+
+/* Touch target minimum size for mobile */
+@media (max-width: 768px) {
+  button, a, [role="button"] {
+    min-height: 40px;
+    min-width: 40px;
+  }
+  select, input[type="text"], input[type="email"], input[type="password"] {
+    font-size: 16px; /* Prevent iOS auto-zoom */
+    min-height: 44px;
+  }
+}
+
+/* Safe area insets for notched phones */
+.safe-bottom { padding-bottom: env(safe-area-inset-bottom); }

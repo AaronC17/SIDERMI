@@ -21,6 +21,7 @@ import {
   FileText,
   GraduationCap,
   ClipboardList,
+  ChevronDown,
 } from 'lucide-react';
 import { getStudents, notificarEstudiante, getDashboard } from '../services/api';
 import type { Student, PaginatedResponse, DashboardStats } from '../types';
@@ -114,6 +115,7 @@ export default function Students() {
 
   /* ── Derived ── */
   const activeFilters = [estado, tipoMat, carrera, docFiltro].filter(Boolean).length;
+  const [filtersOpen, setFiltersOpen] = useState(true);
 
   const clearAll = () => {
     setSearch(''); setMatriculado(''); setEstado(''); setTipoMat(''); setCarrera(''); setDocFiltro('');
@@ -163,29 +165,31 @@ export default function Students() {
           { label: 'Matriculados',      value: stats?.matriculados ?? '—',                              icon: UserCheck },
           { label: 'Docs completos',    value: stats?.documentos?.todosCompletos ?? '—',                icon: CheckCircle },
         ].map(({ label, value, icon: Icon }) => (
-          <div key={label} className="bg-white rounded-xl border border-utn-blue/20 px-4 py-3 flex items-center gap-3 shadow-sm">
-            <div className="w-9 h-9 rounded-lg bg-utn-blue/[0.08] flex items-center justify-center shrink-0">
-              <Icon size={16} className="text-utn-blue" />
-            </div>
-            <div className="min-w-0">
-              <p className="text-xl font-bold text-slate-800 leading-none">{value}</p>
-              <p className="text-[11px] text-slate-400 mt-0.5 truncate">{label}</p>
+          <div key={label} className="bg-utn-blue/[0.05] rounded-2xl border border-utn-blue/20 p-3.5 shadow-md">
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0">
+                <p className="text-[10px] font-semibold text-utn-blue/70 uppercase tracking-wider truncate">{label}</p>
+                <p className="text-2xl font-extrabold text-slate-800 mt-0.5 tracking-tight leading-none">{value}</p>
+              </div>
+              <div className="w-10 h-10 rounded-xl bg-utn-blue/15 flex items-center justify-center shrink-0">
+                <Icon size={20} className="text-utn-blue" />
+              </div>
             </div>
           </div>
         ))}
       </div>
 
       {/* ── Matriculado / Aspirante segmented control ── */}
-      <div className="flex items-center gap-1.5 p-1 bg-white rounded-xl border border-utn-blue/15 shadow-sm w-fit">
+      <div className="flex flex-wrap items-center gap-1.5 p-1 bg-white rounded-xl border border-utn-blue/15 shadow-sm w-full sm:w-fit">
         {([
-          { val: '' as const,      label: 'Todos',           icon: Users,     count: null },
-          { val: 'true' as const,  label: 'Matriculados',    icon: UserCheck, count: null },
-          { val: 'false' as const, label: 'Solo Aspirantes', icon: UserX,     count: null },
+          { val: '' as const,      label: 'Todos',        icon: Users,     count: null },
+          { val: 'true' as const,  label: 'Matriculados', icon: UserCheck, count: null },
+          { val: 'false' as const, label: 'Aspirantes',   icon: UserX,     count: null },
         ]).map(tab => (
           <button
             key={tab.val}
             onClick={() => { setMatriculado(tab.val); setPage(1); }}
-            className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold transition-all
+            className={`flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all
               ${matriculado === tab.val
                 ? tab.val === 'true'
                   ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/20'
@@ -204,13 +208,17 @@ export default function Students() {
       <div className="bg-white rounded-2xl shadow-sm border border-utn-blue/10 overflow-hidden">
         {/* Header bar */}
         <div className="flex items-center justify-between px-4 py-2.5 border-b border-slate-100 bg-utn-blue/[0.025]">
-          <div className="flex items-center gap-2">
+          <button
+            onClick={() => setFiltersOpen(v => !v)}
+            className="flex items-center gap-2 cursor-pointer"
+          >
             <SlidersHorizontal size={13} className="text-utn-blue/70" />
             <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Filtros</span>
             {activeFilters > 0 && (
               <span className="px-1.5 py-0.5 rounded-full bg-utn-blue text-white text-[10px] font-bold leading-none">{activeFilters}</span>
             )}
-          </div>
+            <ChevronDown size={13} className={`text-slate-400 transition-transform duration-200 ${filtersOpen ? 'rotate-180' : ''}`} />
+          </button>
           {activeFilters > 0 && (
             <button
               onClick={clearAll}
@@ -221,7 +229,7 @@ export default function Students() {
           )}
         </div>
 
-        <div className="p-3 space-y-2.5">
+        <div className={`p-3 space-y-2.5 ${filtersOpen ? 'block' : 'hidden'}`}>
           {/* Search */}
           <div className="relative">
             <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-utn-blue/40" />
@@ -357,145 +365,234 @@ export default function Students() {
             <p className="text-xs text-slate-400 mt-0.5">Ajuste los criterios de búsqueda</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm border-collapse">
-              <thead>
-                <tr style={{background: 'linear-gradient(to bottom, #f8fafc, #f1f5f9)'}} className="border-y border-slate-200">
-                  {[
-                    { label: 'Cédula', field: 'cedula', w: 'w-36' },
-                    { label: 'Estudiante', field: 'primerApellido', w: '' },
-                    { label: 'Carrera', field: 'codigoCarrera', w: 'w-20' },
-                    { label: 'Sexo', field: 'sexo', w: 'w-14' },
-                    { label: 'Estado', field: 'estadoAvatar', w: 'w-28' },
-                    { label: 'Documentos', field: '', w: 'w-32' },
-                    { label: 'Acciones', field: '', w: 'w-20 text-center' },
-                  ].map((col, i) => (
-                    <th
-                      key={i}
-                      className={`text-left font-bold text-slate-500 px-4 py-2.5 text-[10px] uppercase tracking-widest ${col.w} ${col.field ? 'cursor-pointer hover:text-utn-blue select-none' : ''}`}
-                      onClick={() => col.field && toggleSort(col.field)}
-                    >
-                      <span className="inline-flex items-center gap-1.5">
-                        {col.label}
-                        {col.field && <SortIcon field={col.field} />}
-                      </span>
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {data.students.map(s => {
-                  const carreraCode = s.codigoCarrera || s.codigoCarreraAvatar || '—';
-                  const docs = [
-                    s.documentos?.titulo?.estado,
-                    s.documentos?.cedulaFrente?.estado,
-                    s.documentos?.cedulaReverso?.estado,
-                    s.documentos?.fotoCarnet?.estado,
-                  ];
-                  const docsTotal = docs.length;
-                  const docsCompletos = docs.filter(d => d === 'COMPLETO').length;
-                  const docsPct = Math.round((docsCompletos / docsTotal) * 100);
-                  return (
-                    <tr key={s._id} className="hover:bg-blue-50/40 transition-colors duration-100 group">
-                      {/* Cédula */}
-                      <td className="px-4 py-2.5">
-                        <span className="font-mono text-[11px] font-bold text-utn-blue/80 bg-utn-blue/[0.06] border border-utn-blue/15 px-2 py-0.5 rounded-md tracking-wide whitespace-nowrap">
-                          {formatCedula(s.cedula)}
-                        </span>
-                      </td>
-
-                      {/* Estudiante — name + meta line */}
-                      <td className="px-4 py-2.5">
-                        <p className="font-semibold text-slate-800 text-[12px] leading-tight">
+          <>
+            {/* ══ Vista tarjetas — móvil ══ */}
+            <div className="md:hidden divide-y divide-slate-100">
+              {data.students.map(s => {
+                const carreraCode = s.codigoCarrera || s.codigoCarreraAvatar || '—';
+                const docs = [
+                  s.documentos?.titulo?.estado,
+                  s.documentos?.cedulaFrente?.estado,
+                  s.documentos?.cedulaReverso?.estado,
+                  s.documentos?.fotoCarnet?.estado,
+                ];
+                const docsTotal = docs.length;
+                const docsCompletos = docs.filter(d => d === 'COMPLETO').length;
+                const docsPct = Math.round((docsCompletos / docsTotal) * 100);
+                return (
+                  <div key={s._id} className="px-4 py-3 hover:bg-blue-50/30 transition-colors">
+                    {/* Row 1: name + actions */}
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="font-semibold text-slate-800 text-[13px] leading-tight truncate">
                           {s.primerApellido} {s.segundoApellido}, {s.nombre}
                         </p>
-                        <p className="text-[10px] text-slate-400 mt-0.5 flex items-center gap-1.5 flex-wrap">
-                          <span className={`font-bold px-1.5 py-0.5 rounded text-[9px] border ${
-                            s.matriculado
-                              ? 'bg-emerald-50 text-emerald-600 border-emerald-200'
-                              : 'bg-amber-50 text-amber-600 border-amber-200'
-                          }`}>
-                            {s.matriculado ? 'MATRICULADO' : 'ASPIRANTE'}
+                        <span className="font-mono text-[11px] font-bold text-utn-blue/80 bg-utn-blue/[0.06] border border-utn-blue/15 px-1.5 py-0.5 rounded-md tracking-wide">
+                          {formatCedula(s.cedula)}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1 shrink-0">
+                        <button
+                          title="Editar estudiante"
+                          onClick={() => setEditStudent(s)}
+                          className="p-1.5 rounded-lg hover:bg-utn-blue/10 text-slate-400 hover:text-utn-blue transition-colors"
+                        >
+                          <Edit size={14} />
+                        </button>
+                        <button
+                          title="Notificar por correo"
+                          onClick={() => handleNotify(s.cedula)}
+                          disabled={!s.correoElectronico}
+                          className="p-1.5 rounded-lg hover:bg-amber-100 text-slate-400 hover:text-amber-600 disabled:opacity-20 disabled:cursor-not-allowed transition-colors"
+                        >
+                          <Mail size={14} />
+                        </button>
+                      </div>
+                    </div>
+                    {/* Row 2: badges */}
+                    <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+                      <span className={`font-bold px-1.5 py-0.5 rounded text-[9px] border ${
+                        s.matriculado
+                          ? 'bg-emerald-50 text-emerald-600 border-emerald-200'
+                          : 'bg-amber-50 text-amber-600 border-amber-200'
+                      }`}>{s.matriculado ? 'MATRICULADO' : 'ASPIRANTE'}</span>
+                      <span className="text-[11px] font-semibold text-slate-700 bg-slate-100 border border-slate-200 px-1.5 py-0.5 rounded-md">{carreraCode}</span>
+                      <EstadoBadge estado={s.estadoAvatar} />
+                      {s.sexo && <span className="text-[11px] font-bold text-slate-500">{s.sexo}</span>}
+                    </div>
+                    {/* Row 3: docs */}
+                    <div className="mt-2 space-y-1">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-1">
+                          <span className={`text-[11px] font-bold ${
+                            docsCompletos === docsTotal ? 'text-emerald-600' :
+                            docsCompletos >= 3 ? 'text-amber-600' : 'text-red-500'
+                          }`}>{docsCompletos}/{docsTotal} docs</span>
+                        </div>
+                        <div className="flex items-center gap-0.5">
+                          <DocDot estado={s.documentos?.titulo?.estado || 'NO_REVISADO'} label="Título" />
+                          <DocDot estado={s.documentos?.cedulaFrente?.estado || 'NO_REVISADO'} label="Céd. F" />
+                          <DocDot estado={s.documentos?.cedulaReverso?.estado || 'NO_REVISADO'} label="Céd. R" />
+                          <DocDot estado={s.documentos?.fotoCarnet?.estado || 'NO_REVISADO'} label="Foto" />
+                        </div>
+                      </div>
+                      <div className="h-1 rounded-full bg-slate-100 overflow-hidden">
+                        <div
+                          className={`h-full rounded-full transition-all duration-300 ${
+                            docsCompletos === docsTotal ? 'bg-emerald-400' :
+                            docsCompletos >= 3 ? 'bg-amber-400' : 'bg-red-400'
+                          }`}
+                          style={{ width: `${docsPct}%` }}
+                        />
+                      </div>
+                    </div>
+                    {s.correoElectronico && (
+                      <p className="text-[10px] text-slate-400 mt-1 truncate">{s.correoElectronico}</p>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* ══ Vista tabla — desktop ══ */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-sm border-collapse">
+                <thead>
+                  <tr style={{background: 'linear-gradient(to bottom, #f8fafc, #f1f5f9)'}} className="border-y border-slate-200">
+                    {[
+                      { label: 'Cédula', field: 'cedula', w: 'w-36' },
+                      { label: 'Estudiante', field: 'primerApellido', w: '' },
+                      { label: 'Carrera', field: 'codigoCarrera', w: 'w-20' },
+                      { label: 'Sexo', field: 'sexo', w: 'w-14' },
+                      { label: 'Estado', field: 'estadoAvatar', w: 'w-28' },
+                      { label: 'Documentos', field: '', w: 'w-32' },
+                      { label: 'Acciones', field: '', w: 'w-20 text-center' },
+                    ].map((col, i) => (
+                      <th
+                        key={i}
+                        className={`text-left font-bold text-slate-500 px-4 py-2.5 text-[10px] uppercase tracking-widest ${col.w} ${col.field ? 'cursor-pointer hover:text-utn-blue select-none' : ''}`}
+                        onClick={() => col.field && toggleSort(col.field)}
+                      >
+                        <span className="inline-flex items-center gap-1.5">
+                          {col.label}
+                          {col.field && <SortIcon field={col.field} />}
+                        </span>
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {data.students.map(s => {
+                    const carreraCode = s.codigoCarrera || s.codigoCarreraAvatar || '—';
+                    const docs = [
+                      s.documentos?.titulo?.estado,
+                      s.documentos?.cedulaFrente?.estado,
+                      s.documentos?.cedulaReverso?.estado,
+                      s.documentos?.fotoCarnet?.estado,
+                    ];
+                    const docsTotal = docs.length;
+                    const docsCompletos = docs.filter(d => d === 'COMPLETO').length;
+                    const docsPct = Math.round((docsCompletos / docsTotal) * 100);
+                    return (
+                      <tr key={s._id} className="h-14 hover:bg-blue-50/40 transition-colors duration-100 group">
+                        {/* Cédula */}
+                        <td className="px-4 py-2.5 align-middle">
+                          <span className="font-mono text-[11px] font-bold text-utn-blue/80 bg-utn-blue/[0.06] border border-utn-blue/15 px-2 py-0.5 rounded-md tracking-wide whitespace-nowrap">
+                            {formatCedula(s.cedula)}
                           </span>
-                          {s.correoElectronico && <span className="truncate max-w-[160px]">{s.correoElectronico}</span>}
-                          {s.tipoMatricula && (
-                            <>
-                              <span className="text-slate-300">·</span>
-                              <span className="font-semibold text-slate-400">{s.tipoMatricula === 'ORDINARIA' ? 'Ord.' : 'Ext.'}</span>
-                            </>
-                          )}
-                        </p>
-                      </td>
+                        </td>
 
-                      {/* Carrera */}
-                      <td className="px-4 py-2.5">
-                        <span className="text-[11px] font-semibold text-slate-700 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-md">{carreraCode}</span>
-                      </td>
+                        {/* Estudiante — name + meta line */}
+                        <td className="px-4 py-2.5 align-middle">
+                          <p className="font-semibold text-slate-800 text-[12px] leading-tight">
+                            {s.primerApellido} {s.segundoApellido}, {s.nombre}
+                          </p>
+                          <p className="text-[10px] text-slate-400 mt-0.5 flex items-center gap-1.5 overflow-hidden">
+                            <span className={`font-bold px-1.5 py-0.5 rounded text-[9px] border min-w-[84px] text-center shrink-0 ${
+                              s.matriculado
+                                ? 'bg-emerald-50 text-emerald-600 border-emerald-200'
+                                : 'bg-amber-50 text-amber-600 border-amber-200'
+                            }`}>
+                              {s.matriculado ? 'MATRICULADO' : 'ASPIRANTE'}
+                            </span>
+                            {s.correoElectronico && <span className="truncate max-w-[160px]">{s.correoElectronico}</span>}
+                            {s.tipoMatricula && (
+                              <span className="font-semibold text-slate-400 min-w-[28px] text-center shrink-0">
+                                {s.tipoMatricula === 'ORDINARIA' ? 'Ord.' : 'Ext.'}
+                              </span>
+                            )}
+                          </p>
+                        </td>
 
-                      {/* Sexo */}
-                      <td className="px-4 py-2.5">
-                        <span className="text-[11px] font-bold text-slate-500">{s.sexo || '—'}</span>
-                      </td>
+                        {/* Carrera */}
+                        <td className="px-4 py-2.5 align-middle">
+                          <span className="text-[11px] font-semibold text-slate-700 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-md">{carreraCode}</span>
+                        </td>
 
-                      {/* Estado */}
-                      <td className="px-4 py-2.5">
-                        <EstadoBadge estado={s.estadoAvatar} />
-                      </td>
+                        {/* Sexo */}
+                        <td className="px-4 py-2.5 align-middle">
+                          <span className="text-[11px] font-bold text-slate-500">{s.sexo || '—'}</span>
+                        </td>
 
-                      {/* Docs */}
-                      <td className="px-4 py-2.5">
-                        <div className="space-y-1">
-                          <div className="flex items-center justify-between">
-                            <span className={`text-[11px] font-bold ${
-                              docsCompletos === docsTotal ? 'text-emerald-600' :
-                              docsCompletos >= 3 ? 'text-amber-600' : 'text-red-500'
-                            }`}>{docsCompletos}/{docsTotal}</span>
-                            <div className="flex items-center gap-0.5 ml-2">
-                              <DocDot estado={s.documentos?.titulo?.estado || 'NO_REVISADO'} label="Título" />
-                              <DocDot estado={s.documentos?.cedulaFrente?.estado || 'NO_REVISADO'} label="Céd. F" />
-                              <DocDot estado={s.documentos?.cedulaReverso?.estado || 'NO_REVISADO'} label="Céd. R" />
-                              <DocDot estado={s.documentos?.fotoCarnet?.estado || 'NO_REVISADO'} label="Foto" />
-                              <DocDot estado={s.documentos?.formularioMatricula?.estado || 'NO_REVISADO'} label="Form" />
+                        {/* Estado */}
+                        <td className="px-4 py-2.5 align-middle">
+                          <EstadoBadge estado={s.estadoAvatar} />
+                        </td>
+
+                        {/* Docs */}
+                        <td className="px-4 py-2.5 align-middle">
+                          <div className="space-y-1">
+                            <div className="flex items-center justify-between">
+                              <span className={`text-[11px] font-bold ${
+                                docsCompletos === docsTotal ? 'text-emerald-600' :
+                                docsCompletos >= 3 ? 'text-amber-600' : 'text-red-500'
+                              }`}>{docsCompletos}/{docsTotal}</span>
+                              <div className="flex items-center gap-0.5 ml-2">
+                                <DocDot estado={s.documentos?.titulo?.estado || 'NO_REVISADO'} label="Título" />
+                                <DocDot estado={s.documentos?.cedulaFrente?.estado || 'NO_REVISADO'} label="Céd. F" />
+                                <DocDot estado={s.documentos?.cedulaReverso?.estado || 'NO_REVISADO'} label="Céd. R" />
+                                <DocDot estado={s.documentos?.fotoCarnet?.estado || 'NO_REVISADO'} label="Foto" />
+                              </div>
+                            </div>
+                            <div className="h-1 rounded-full bg-slate-100 overflow-hidden w-full">
+                              <div
+                                className={`h-full rounded-full transition-all duration-300 ${
+                                  docsCompletos === docsTotal ? 'bg-emerald-400' :
+                                  docsCompletos >= 3 ? 'bg-amber-400' : 'bg-red-400'
+                                }`}
+                                style={{ width: `${docsPct}%` }}
+                              />
                             </div>
                           </div>
-                          <div className="h-1 rounded-full bg-slate-100 overflow-hidden w-full">
-                            <div
-                              className={`h-full rounded-full transition-all duration-300 ${
-                                docsCompletos === docsTotal ? 'bg-emerald-400' :
-                                docsCompletos >= 3 ? 'bg-amber-400' : 'bg-red-400'
-                              }`}
-                              style={{ width: `${docsPct}%` }}
-                            />
-                          </div>
-                        </div>
-                      </td>
+                        </td>
 
-                      {/* Actions */}
-                      <td className="px-4 py-2.5">
-                        <div className="flex items-center gap-1">
-                          <button
-                            title="Editar estudiante"
-                            onClick={() => setEditStudent(s)}
-                            className="p-1.5 rounded-lg hover:bg-utn-blue/10 text-slate-400 hover:text-utn-blue transition-colors"
-                          >
-                            <Edit size={13} />
-                          </button>
-                          <button
-                            title="Notificar por correo"
-                            onClick={() => handleNotify(s.cedula)}
-                            disabled={!s.correoElectronico}
-                            className="p-1.5 rounded-lg hover:bg-amber-100 text-slate-400 hover:text-amber-600 disabled:opacity-20 disabled:cursor-not-allowed transition-colors"
-                          >
-                            <Mail size={13} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                        {/* Actions */}
+                        <td className="px-4 py-2.5 align-middle">
+                          <div className="flex items-center gap-1">
+                            <button
+                              title="Editar estudiante"
+                              onClick={() => setEditStudent(s)}
+                              className="p-1.5 rounded-lg hover:bg-utn-blue/10 text-slate-400 hover:text-utn-blue transition-colors"
+                            >
+                              <Edit size={13} />
+                            </button>
+                            <button
+                              title="Notificar por correo"
+                              onClick={() => handleNotify(s.cedula)}
+                              disabled={!s.correoElectronico}
+                              className="p-1.5 rounded-lg hover:bg-amber-100 text-slate-400 hover:text-amber-600 disabled:opacity-20 disabled:cursor-not-allowed transition-colors"
+                            >
+                              <Mail size={13} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
 
         {/* Pagination */}

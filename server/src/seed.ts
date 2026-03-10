@@ -8,8 +8,34 @@ import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import Student from './models/Student';
 import UploadHistory from './models/UploadHistory';
+import User from './models/User';
 
 dotenv.config();
+
+/* ─── Seed del usuario admin por defecto ─── */
+
+export async function seedDefaultAdmin() {
+  const adminExists = await User.findOne({ username: 'admin' });
+  if (!adminExists) {
+    await User.create({
+      username: 'admin',
+      nombre: 'Administrador',
+      password: 'utn2026',
+      rol: 'Administrador',
+    });
+    console.log('✅ Usuario admin creado (admin / utn2026)');
+  }
+  const registroExists = await User.findOne({ username: 'registro' });
+  if (!registroExists) {
+    await User.create({
+      username: 'registro',
+      nombre: 'Oficina de Registro',
+      password: 'registro2026',
+      rol: 'Registro',
+    });
+    console.log('✅ Usuario registro creado (registro / registro2026)');
+  }
+}
 
 /* ─── Datos base ─── */
 
@@ -282,7 +308,11 @@ async function seed() {
   console.log('🔌 Desconectado de MongoDB.');
 }
 
-seed().catch(err => {
-  console.error('❌ Error en seed:', err);
-  process.exit(1);
-});
+// Solo ejecutar el seed completo cuando se corre como script directo
+// (npx ts-node src/seed.ts), no cuando se importa desde index.ts
+if (require.main === module) {
+  seed().catch(err => {
+    console.error('❌ Error en seed:', err);
+    process.exit(1);
+  });
+}

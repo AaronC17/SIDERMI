@@ -1,7 +1,17 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import type { ReactElement } from 'react';
-import { UserPlus, Pencil, Trash2, ShieldCheck, UserCog, Eye, EyeOff, X, Save, AlertTriangle } from 'lucide-react';
-import { useAuth, type SystemUser } from '../context/AuthContext';
+import { UserPlus, Pencil, Trash2, ShieldCheck, UserCog, Eye, EyeOff, X, Save, AlertTriangle, Loader2 } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+import { getUsers, createUser, updateUserApi, deleteUserApi } from '../services/api';
+
+interface BackendUser {
+  username: string;
+  nombre: string;
+  rol: string;
+  activo: boolean;
+  ultimoLogin?: string;
+  creadoEn?: string;
+}
 
 const ROLES = ['Administrador', 'Registro', 'Consulta'];
 
@@ -21,16 +31,29 @@ type FormData = { username: string; nombre: string; password: string; rol: strin
 const EMPTY: FormData = { username: '', nombre: '', password: '', rol: 'Registro' };
 
 export default function Users() {
-  const { systemUsers, addUser, updateUser, deleteUser, user: currentUser } = useAuth();
+  const { user: currentUser } = useAuth();
+  const [users, setUsers]     = useState<BackendUser[]>([]);
+  const [fetching, setFetching] = useState(true);
 
   const [modal, setModal]       = useState<'create' | 'edit' | null>(null);
-  const [editing, setEditing]   = useState<SystemUser | null>(null);
+  const [editing, setEditing]   = useState<BackendUser | null>(null);
   const [form, setForm]         = useState<FormData>(EMPTY);
   const [showPwd, setShowPwd]   = useState(false);
-  const [deleteTarget, setDeleteTarget] = useState<SystemUser | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<BackendUser | null>(null);
   const [errors, setErrors]     = useState<Partial<FormData>>({});
+  const [saving, setSaving]     = useState(false);
 
   const isAdmin = currentUser?.rol === 'Administrador';
+
+  const fetchUsers = useCallback(async () => {
+    try {
+      const data = await getUsers();
+      setUsers(data);
+    } catch { /* handled by interceptor */ }
+    finally { setFetching(false); }
+  }, []);
+
+  useEffect(() => { fetchUsers(); }, [fetchUsers]);
 
   /* ── validación ── */
   function validate(data: FormData, isEdit: boolean): boolean {
@@ -40,7 +63,7 @@ export default function Users() {
       if (!data.username.trim()) e.username = 'El usuario es requerido';
       else if (!/^[a-z0-9_]{3,20}$/.test(data.username))
         e.username = 'Solo letras minúsculas, números y _, 3-20 caracteres';
-      else if (systemUsers.some(u => u.username === data.username && u.username !== editing?.username))
+      else if (users.some(u => u.username === data.username))
         e.username = 'Ese nombre de usuario ya existe';
       if (!data.password) e.password = 'La contraseña es requerida';
     }
@@ -57,7 +80,7 @@ export default function Users() {
     setModal('create');
   }
 
-  function openEdit(u: SystemUser) {
+  function openEdit(u: BackendUser) {
     setForm({ username: u.username, nombre: u.nombre, password: '', rol: u.rol });
     setEditing(u);
     setErrors({});
@@ -67,23 +90,35 @@ export default function Users() {
 
   function closeModal() { setModal(null); setEditing(null); }
 
-  function handleSave() {
+  async function handleSave() {
     const isEdit = modal === 'edit';
     if (!validate(form, isEdit)) return;
-    if (isEdit && editing) {
-      const patch: Partial<SystemUser> = { nombre: form.nombre, rol: form.rol };
-      if (form.password) patch.password = form.password;
-      updateUser(editing.username, patch);
-    } else {
-      addUser({ username: form.username.toLowerCase().trim(), nombre: form.nombre.trim(), password: form.password, rol: form.rol });
-    }
-    closeModal();
+    setSaving(true);
+    try {
+      if (isEdit && editing) {
+        const patch: Record<string, string> = { nombre: form.nombre, rol: form.rol };
+        if (form.password) patch.password = form.password;
+        await updateUserApi(editing.username, patch);
+      } else {
+        await createUser({ username: form.username.toLowerCase().trim(), nombre: form.nombre.trim(), password: form.password, rol: form.rol });
+      }
+      await fetchUsers();
+      closeModal();
+    } catch (err: any) {
+      const msg = err.response?.data?.error || 'Error al guardar';
+      setErrors({ username: msg });
+    } finally { setSaving(false); }
   }
 
-  function handleDelete() {
+  async function handleDelete() {
     if (!deleteTarget) return;
-    deleteUser(deleteTarget.username);
-    setDeleteTarget(null);
+    setSaving(true);
+    try {
+      await deleteUserApi(deleteTarget.username);
+      await fetchUsers();
+      setDeleteTarget(null);
+    } catch { /* handled by interceptor */ }
+    finally { setSaving(false); }
   }
 
   const field = (key: keyof FormData) => ({
@@ -113,7 +148,8 @@ export default function Users() {
 
       {/* Tabla */}
       <div className="bg-white rounded-2xl border border-slate-200/70 shadow-sm overflow-hidden">
-        <table className="w-full text-sm">
+        <div className="overflow-x-auto">
+        <table className="w-full text-sm min-w-[420px]">
           <thead>
             <tr className="border-b border-slate-100 bg-slate-50/60">
               <th className="text-left px-5 py-3.5 text-xs font-semibold text-slate-500 uppercase tracking-wide">Usuario</th>
@@ -123,7 +159,7 @@ export default function Users() {
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
-            {systemUsers.map(u => (
+            {users.map(u => (
               <tr key={u.username} className="hover:bg-slate-50/50 transition-colors group">
                 <td className="px-5 py-3.5">
                   <div className="flex items-center gap-2.5">
@@ -169,9 +205,15 @@ export default function Users() {
             ))}
           </tbody>
         </table>
+        </div>
 
-        {systemUsers.length === 0 && (
+        {users.length === 0 && !fetching && (
           <div className="py-16 text-center text-slate-400 text-sm">No hay usuarios registrados</div>
+        )}
+        {fetching && (
+          <div className="py-16 flex items-center justify-center gap-2 text-slate-400 text-sm">
+            <Loader2 size={16} className="animate-spin" /> Cargando usuarios…
+          </div>
         )}
       </div>
 
@@ -263,9 +305,10 @@ export default function Users() {
               </button>
               <button
                 onClick={handleSave}
-                className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-utn-blue text-white text-sm font-semibold hover:bg-utn-blue/90 transition-colors"
+                disabled={saving}
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-utn-blue text-white text-sm font-semibold hover:bg-utn-blue/90 transition-colors disabled:opacity-60"
               >
-                <Save size={15} />
+                {saving ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
                 {modal === 'create' ? 'Crear usuario' : 'Guardar cambios'}
               </button>
             </div>

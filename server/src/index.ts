@@ -3,6 +3,10 @@ import cors from 'cors';
 import path from 'path';
 import dotenv from 'dotenv';
 import { connectDB } from './config/database';
+import { requireAuth } from './middleware/auth';
+import { seedDefaultAdmin } from './seed';
+import authRoutes from './routes/auth';
+import auditRoutes from './routes/audit';
 import studentRoutes from './routes/students';
 import uploadRoutes from './routes/uploads';
 import documentRoutes from './routes/documents';
@@ -22,11 +26,15 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 app.use('/documents', express.static(path.join(__dirname, '../documents')));
 
-// Rutas API
-app.use('/api/students', studentRoutes);
-app.use('/api/uploads', uploadRoutes);
-app.use('/api/documents', documentRoutes);
-app.use('/api/stats', statsRoutes);
+// Rutas públicas (login no requiere token)
+app.use('/api/auth', authRoutes);
+
+// Rutas protegidas (requieren autenticación)
+app.use('/api/students', requireAuth, studentRoutes);
+app.use('/api/uploads', requireAuth, uploadRoutes);
+app.use('/api/documents', requireAuth, documentRoutes);
+app.use('/api/stats', requireAuth, statsRoutes);
+app.use('/api/audit', auditRoutes); // ya tiene requireAuth interno
 
 // Health check
 app.get('/api/health', (_req, res) => {
@@ -44,6 +52,7 @@ if (process.env.NODE_ENV === 'production') {
 // Iniciar servidor
 const start = async () => {
   await connectDB();
+  await seedDefaultAdmin();
   app.listen(Number(PORT), '0.0.0.0', () => {
     console.log(`\n🎓 Sistema de Registro UTN`);
     console.log(`   Servidor corriendo en http://0.0.0.0:${PORT}`);

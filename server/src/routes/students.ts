@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import Student from '../models/Student';
 import { enviarNotificacionDocumentos, enviarBienvenida } from '../services/emailService';
+import { registrarAuditoria, auditFromReq } from '../services/auditService';
 
 const router = Router();
 
@@ -118,6 +119,15 @@ router.put('/:cedula', async (req: Request, res: Response) => {
       await student.save();
     }
 
+    const { usuario, ip } = auditFromReq(req);
+    await registrarAuditoria({
+      usuario, ip,
+      accion: 'EDITAR',
+      entidad: 'estudiante',
+      entidadId: req.params.cedula,
+      detalle: `Estudiante ${req.params.cedula} actualizado`,
+    });
+
     res.json(student);
   } catch (error: any) {
     res.status(500).json({ error: error.message });
@@ -160,6 +170,15 @@ router.put('/:cedula/documentos', async (req: Request, res: Response) => {
         $set: { estadoAvatar: 'COMPLETO', verificacionRegistro: true }
       });
     }
+
+    const { usuario, ip } = auditFromReq(req);
+    await registrarAuditoria({
+      usuario, ip,
+      accion: 'EDITAR',
+      entidad: 'documento',
+      entidadId: req.params.cedula,
+      detalle: `Documentos de ${req.params.cedula} actualizados`,
+    });
 
     res.json(student);
   } catch (error: any) {

@@ -11,11 +11,18 @@ import Templates from './pages/Templates';
 import DemoLocked from './pages/DemoLocked';
 import UploadDemo from './pages/UploadDemo';
 import Users from './pages/Users';
+import AuditLog from './pages/AuditLog';
 
 const IS_DEMO = import.meta.env.VITE_DEMO_MODE === 'true';
 
 function ProtectedRoutes() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, loading } = useAuth();
+  if (loading)
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <div className="w-8 h-8 border-3 border-utn-blue/20 border-t-utn-blue rounded-full animate-spin" />
+      </div>
+    );
   if (!isAuthenticated) return <Navigate to="/login" replace />;
   return (
     <Routes>
@@ -26,6 +33,7 @@ function ProtectedRoutes() {
         <Route path="/estadisticas" element={IS_DEMO ? <DemoLocked /> : <Stats />} />
         <Route path="/plantillas" element={IS_DEMO ? <DemoLocked /> : <Templates />} />
         <Route path="/usuarios" element={IS_DEMO ? <DemoLocked /> : <Users />} />
+        <Route path="/auditoria" element={IS_DEMO ? <DemoLocked /> : <AuditLog />} />
       </Route>
     </Routes>
   );

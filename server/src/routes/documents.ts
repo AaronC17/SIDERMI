@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { uploadDocument } from '../middleware/upload';
 import Student from '../models/Student';
 import path from 'path';
+import { registrarAuditoria, auditFromReq } from '../services/auditService';
 
 const router = Router();
 
@@ -44,6 +45,15 @@ router.post('/:cedula/upload/:tipoDoc', uploadDocument.single('archivo'), async 
       tipoDocumento: tipoDoc,
       archivo: relativePath,
       message: 'Documento subido. Pendiente de verificación manual.',
+    });
+
+    const { usuario, ip } = auditFromReq(req);
+    registrarAuditoria({
+      usuario, ip,
+      accion: 'SUBIR_ARCHIVO',
+      entidad: 'documento',
+      entidadId: cedula,
+      detalle: `Archivo ${tipoDoc} subido para ${cedula}`,
     });
   } catch (error: any) {
     res.status(500).json({ error: error.message });

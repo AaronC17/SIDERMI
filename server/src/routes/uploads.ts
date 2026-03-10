@@ -12,6 +12,7 @@ import {
   importarAvatar,
 } from '../services/compareService';
 import UploadHistory from '../models/UploadHistory';
+import { registrarAuditoria, auditFromReq } from '../services/auditService';
 
 const router = Router();
 
@@ -51,6 +52,15 @@ router.post('/aspirantes', uploadExcel.single('archivo'), async (req: Request, r
       archivo: req.file.originalname,
       registrosTotales: rows.length,
       ...result,
+    });
+
+    const { usuario, ip } = auditFromReq(req);
+    registrarAuditoria({
+      usuario, ip,
+      accion: 'IMPORTAR',
+      entidad: 'importacion',
+      entidadId: req.file.originalname,
+      detalle: `Aspirantes: ${result.nuevos} nuevos, ${result.actualizados} actualizados, ${result.existentes} existentes`,
     });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
@@ -228,6 +238,17 @@ router.get('/historial', async (_req: Request, res: Response) => {
       .sort({ fecha: -1 })
       .limit(50);
     res.json(historial);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// DELETE /api/uploads/historial/:id - Eliminar entrada del historial
+router.delete('/historial/:id', async (req: Request, res: Response) => {
+  try {
+    const deleted = await UploadHistory.findByIdAndDelete(req.params.id);
+    if (!deleted) return res.status(404).json({ error: 'Registro no encontrado' });
+    res.json({ success: true });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }

@@ -18,7 +18,7 @@ export default function Login() {
   const [focused, setFocused] = useState<string | null>(null)
   const { login } = useAuth()
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
     if (!username.trim() || !password.trim()) {
@@ -26,11 +26,14 @@ export default function Login() {
       return
     }
     setLoading(true)
-    setTimeout(() => {
-      const ok = login(username, password)
+    try {
+      const ok = await login(username, password)
       if (!ok) setError('Credenciales incorrectas')
+    } catch {
+      setError('Error de conexión con el servidor')
+    } finally {
       setLoading(false)
-    }, 400)
+    }
   }
 
   return (
@@ -240,6 +243,9 @@ export default function Login() {
 
           <p className="text-center text-[10px] md:text-[11px] text-slate-400/70 mt-4 md:mt-6 lg:mt-8">
             SIDERMI v1.0 — © 2026 Universidad Técnica Nacional
+          </p>
+          <p className="text-center text-[10px] md:text-[11px] text-slate-400/50 mt-1">
+            Desarrollado por Aarón Jesús Contreras Alvarado
           </p>
         </div>
       </div>

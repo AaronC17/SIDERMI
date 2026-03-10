@@ -84,14 +84,14 @@ export default function Dashboard() {
         </div>
         <button
           onClick={handleDownload}
-          className="inline-flex items-center gap-2 px-5 py-2.5 bg-utn-blue text-white rounded-xl text-sm font-semibold hover:bg-utn-blue-light transition-colors shadow-md shadow-utn-blue/30"
+          className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-utn-blue text-white rounded-xl text-sm font-semibold hover:bg-utn-blue-light transition-colors shadow-md shadow-utn-blue/30"
         >
           <Download size={15} /> Descargar Completos
         </button>
       </div>
 
       {/* ═══ Hero stat row  ═══ */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         {/* Total */}
         <div className="bg-utn-blue/[0.05] rounded-2xl border border-utn-blue/20 p-3.5 shadow-md">
           <div className="flex items-start justify-between">
@@ -103,14 +103,15 @@ export default function Dashboard() {
               <Users size={20} className="text-utn-blue" />
             </div>
           </div>
-          <div className="mt-3">
-            <div className="flex-1 h-2 rounded-full bg-utn-blue/10 overflow-hidden flex">
-              <div className="h-full bg-utn-blue rounded-l-full transition-all" style={{ width: `${pctMatriculados}%` }} />
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            <div className="px-2.5 py-1.5 bg-utn-blue/10 border border-utn-blue/15 rounded-lg">
+              <p className="text-base font-bold text-slate-800">{stats.matriculados || 0}</p>
+              <p className="text-[10px] text-utn-blue font-bold">Matriculados</p>
             </div>
-          </div>
-          <div className="mt-1.5 flex justify-between text-[10px] font-semibold">
-            <span className="text-utn-blue font-bold">{pctMatriculados}% matriculados</span>
-            <span className="text-slate-500">{pctAspirantes}% aspirantes</span>
+            <div className="px-2.5 py-1.5 bg-slate-50 rounded-lg">
+              <p className="text-base font-bold text-slate-800">{stats.aspirantesSinMatricula || 0}</p>
+              <p className="text-[10px] text-slate-500 font-semibold">Aspirantes</p>
+            </div>
           </div>
         </div>
 
@@ -162,7 +163,7 @@ export default function Dashboard() {
       </div>
 
       {/* ═══ Middle row: Documents + Careers ═══ */}
-      <div className="grid lg:grid-cols-5 gap-3">
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-3">
         {/* Documents — 2 cols */}
         <div className="lg:col-span-2 bg-white rounded-2xl shadow-md border border-slate-200 flex flex-col">
           <div className="px-4 py-3 border-b border-slate-100 flex items-center gap-2">
@@ -265,36 +266,55 @@ export default function Dashboard() {
             Cargar datos <ArrowUpRight size={11} />
           </button>
         </div>
-        <div className="overflow-x-auto">
-          {stats.ultimosUploads?.length > 0 ? (
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="bg-utn-blue/[0.06]">
-                  <th className="text-left font-semibold text-slate-500 px-4 py-2 text-[11px] uppercase tracking-wider">Fecha</th>
-                  <th className="text-left font-semibold text-slate-500 px-4 py-2 text-[11px] uppercase tracking-wider">Tipo</th>
-                  <th className="text-left font-semibold text-slate-500 px-4 py-2 text-[11px] uppercase tracking-wider">Archivo</th>
-                  <th className="text-right font-semibold text-slate-500 px-4 py-2 text-[11px] uppercase tracking-wider">Nuevos</th>
-                  <th className="text-right font-semibold text-slate-500 px-4 py-2 text-[11px] uppercase tracking-wider">Total</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-50">
-                {stats.ultimosUploads.map(u => (
-                  <tr key={u._id} className="hover:bg-slate-50/60 transition-colors">
-                    <td className="px-4 py-2 text-slate-600 text-xs font-medium">{new Date(u.fecha).toLocaleDateString('es-CR')}</td>
-                    <td className="px-4 py-2">
-                      <span className="px-2 py-0.5 rounded-md bg-utn-blue/10 text-utn-blue text-[11px] font-semibold">{u.tipoArchivo}</span>
-                    </td>
-                    <td className="px-4 py-2 text-slate-600 truncate max-w-[220px] text-xs">{u.nombreArchivo}</td>
-                    <td className="px-4 py-2 text-right font-semibold text-slate-700 text-xs">{u.registrosNuevos}</td>
-                    <td className="px-4 py-2 text-right font-bold text-slate-700 text-xs">{u.registrosTotales}</td>
+        {stats.ultimosUploads?.length > 0 ? (
+          <>
+            {/* Mobile cards */}
+            <div className="md:hidden divide-y divide-slate-100">
+              {stats.ultimosUploads.map(u => (
+                <div key={u._id} className="px-4 py-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="px-2 py-0.5 rounded-md bg-utn-blue/10 text-utn-blue text-[11px] font-semibold">{u.tipoArchivo}</span>
+                    <span className="text-[11px] text-slate-400 font-medium">{new Date(u.fecha).toLocaleDateString('es-CR')}</span>
+                  </div>
+                  <p className="text-xs text-slate-600 truncate mt-1">{u.nombreArchivo}</p>
+                  <div className="flex items-center gap-3 mt-1">
+                    <span className="text-[11px] text-slate-500">Nuevos: <strong className="text-slate-700">{u.registrosNuevos}</strong></span>
+                    <span className="text-[11px] text-slate-500">Total: <strong className="text-slate-700">{u.registrosTotales}</strong></span>
+                  </div>
+                </div>
+              ))}
+            </div>
+            {/* Desktop table */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-utn-blue/[0.06]">
+                    <th className="text-left font-semibold text-slate-500 px-4 py-2 text-[11px] uppercase tracking-wider">Fecha</th>
+                    <th className="text-left font-semibold text-slate-500 px-4 py-2 text-[11px] uppercase tracking-wider">Tipo</th>
+                    <th className="text-left font-semibold text-slate-500 px-4 py-2 text-[11px] uppercase tracking-wider">Archivo</th>
+                    <th className="text-right font-semibold text-slate-500 px-4 py-2 text-[11px] uppercase tracking-wider">Nuevos</th>
+                    <th className="text-right font-semibold text-slate-500 px-4 py-2 text-[11px] uppercase tracking-wider">Total</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          ) : (
-            <div className="px-5 py-10 text-center text-sm text-slate-400">No hay cargas recientes</div>
-          )}
-        </div>
+                </thead>
+                <tbody className="divide-y divide-slate-50">
+                  {stats.ultimosUploads.map(u => (
+                    <tr key={u._id} className="hover:bg-slate-50/60 transition-colors">
+                      <td className="px-4 py-2 text-slate-600 text-xs font-medium">{new Date(u.fecha).toLocaleDateString('es-CR')}</td>
+                      <td className="px-4 py-2">
+                        <span className="px-2 py-0.5 rounded-md bg-utn-blue/10 text-utn-blue text-[11px] font-semibold">{u.tipoArchivo}</span>
+                      </td>
+                      <td className="px-4 py-2 text-slate-600 truncate max-w-[220px] text-xs">{u.nombreArchivo}</td>
+                      <td className="px-4 py-2 text-right font-semibold text-slate-700 text-xs">{u.registrosNuevos}</td>
+                      <td className="px-4 py-2 text-right font-bold text-slate-700 text-xs">{u.registrosTotales}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
+        ) : (
+          <div className="px-5 py-10 text-center text-sm text-slate-400">No hay cargas recientes</div>
+        )}
       </div>
     </div>
   );

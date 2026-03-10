@@ -9,12 +9,16 @@ import {
   Users,
   Scissors,
   UserSquare2,
+  Trash2,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 import {
   uploadAspirantes,
   uploadCorte,
   uploadAvatar,
   getUploadHistory,
+  deleteUploadHistory,
 } from '../services/api';
 import type { UploadResult, UploadHistory } from '../types';
 import { useToast } from '../components/Toast';
@@ -38,12 +42,26 @@ export default function Upload() {
   const [uploadedAt, setUploadedAt] = useState<Date | null>(null);
   const [dragging, setDragging] = useState(false);
   const [history, setHistory] = useState<UploadHistory[]>([]);
+  const [historyExpanded, setHistoryExpanded] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const { addToast } = useToast();
 
   useEffect(() => {
     getUploadHistory().then(setHistory).catch(() => {});
   }, [result]);
+
+  const handleDeleteHistory = async (id: string) => {
+    setDeletingId(id);
+    try {
+      await deleteUploadHistory(id);
+      setHistory(prev => prev.filter(h => h._id !== id));
+    } catch {
+      addToast('Error al eliminar registro', 'error');
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   const handleDrop = (e: DragEvent) => {
     e.preventDefault();
@@ -92,7 +110,7 @@ export default function Upload() {
       <p className="text-sm text-slate-500">Importe datos de Aspirantes, Corte o Avatar</p>
 
       {/* Mode selector — 3 cards */}
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
         {MODES.map(m => {
           const Icon = m.icon;
           const active = mode === m.key;
@@ -100,7 +118,7 @@ export default function Upload() {
             <button
               key={m.key}
               onClick={() => { setMode(m.key); setResult(null); setFile(null); }}
-              className={`relative flex items-center gap-3 px-4 py-2.5 rounded-xl text-left transition-all border-2
+              className={`relative flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all border-2
                 ${active
                   ? 'bg-utn-blue text-white border-utn-blue shadow-lg shadow-utn-blue/25'
                   : 'bg-white text-slate-700 border-slate-200 hover:border-utn-blue/40 hover:shadow-sm'}`}
@@ -109,11 +127,11 @@ export default function Upload() {
                 ${active ? 'bg-white/20' : 'bg-utn-blue/8'}`}>
                 <Icon size={18} className={active ? 'text-white' : 'text-utn-blue'} />
               </div>
-              <div className="min-w-0">
+              <div className="min-w-0 flex-1">
                 <p className={`font-bold text-sm leading-tight ${active ? 'text-white' : 'text-slate-800'}`}>{m.label}</p>
-                <p className={`text-xs mt-0.5 truncate ${active ? 'text-white/65' : 'text-slate-400'}`}>{m.desc}</p>
+                <p className={`text-xs mt-0.5 ${active ? 'text-white/65' : 'text-slate-400'}`}>{m.desc}</p>
               </div>
-              {active && <div className="absolute top-2.5 right-2.5 w-2 h-2 bg-white rounded-full opacity-80" />}
+              {active && <div className="w-2 h-2 bg-white rounded-full opacity-80 shrink-0" />}
             </button>
           );
         })}
@@ -307,50 +325,83 @@ export default function Upload() {
         </div>
       </div>
 
-      {/* Historial — máx 5 filas */}
+      {/* Historial */}
       {history.length > 0 && (
         <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden" style={{boxShadow:'0 1px 3px rgba(0,0,0,0.04),0 4px 16px rgba(0,0,0,0.06)'}}>
-          <div className="px-5 py-3.5 border-b border-slate-100 flex items-center justify-between">
-            <h3 className="font-semibold text-slate-800 text-sm">Historial de Cargas</h3>
-            {history.length > 5 && (
-              <span className="text-xs text-slate-400">Mostrando últimas 5 de {history.length}</span>
-            )}
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="bg-utn-blue/[0.04] border-b border-utn-blue/10">
-                  <th className="text-left font-semibold text-slate-500 px-4 py-2.5 text-[10px] uppercase tracking-wider">Fecha</th>
-                  <th className="text-left font-semibold text-slate-500 px-4 py-2.5 text-[10px] uppercase tracking-wider">Tipo</th>
-                  <th className="text-left font-semibold text-slate-500 px-4 py-2.5 text-[10px] uppercase tracking-wider">Matrícula</th>
-                  <th className="text-left font-semibold text-slate-500 px-4 py-2.5 text-[10px] uppercase tracking-wider">Archivo</th>
-                  <th className="text-right font-semibold text-slate-500 px-4 py-2.5 text-[10px] uppercase tracking-wider">Nuevos</th>
-                  <th className="text-right font-semibold text-slate-500 px-4 py-2.5 text-[10px] uppercase tracking-wider">Actual.</th>
-                  <th className="text-right font-semibold text-slate-500 px-4 py-2.5 text-[10px] uppercase tracking-wider">Total</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-50">
-                {history.slice(0, 5).map(h => (
-                  <tr key={h._id} className="hover:bg-blue-50/30 transition-colors">
-                    <td className="px-4 py-2.5 text-slate-500 text-xs whitespace-nowrap">{new Date(h.fecha).toLocaleString('es-CR', { day:'2-digit', month:'2-digit', year:'2-digit', hour:'2-digit', minute:'2-digit' })}</td>
-                    <td className="px-4 py-2.5">
-                      <span className="px-2 py-0.5 rounded-md bg-utn-blue/10 text-utn-blue text-[11px] font-semibold">{h.tipoArchivo}</span>
-                    </td>
-                    <td className="px-4 py-2.5">
-                      <span className={`px-2 py-0.5 rounded-md text-[11px] font-medium
-                        ${h.tipoMatricula === 'ORDINARIA' ? 'bg-utn-blue/10 text-utn-blue' : 'bg-slate-100 text-slate-500'}`}>
-                        {h.tipoMatricula || '—'}
-                      </span>
-                    </td>
-                    <td className="px-4 py-2.5 text-slate-500 truncate max-w-[180px] text-xs">{h.nombreArchivo}</td>
-                    <td className="px-4 py-2.5 text-right font-bold text-emerald-600 text-xs">{h.registrosNuevos}</td>
-                    <td className="px-4 py-2.5 text-right text-slate-500 text-xs">{h.registrosActualizados}</td>
-                    <td className="px-4 py-2.5 text-right font-bold text-slate-700 text-xs">{h.registrosTotales}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <button
+            onClick={() => setHistoryExpanded(v => !v)}
+            className="w-full px-5 py-3.5 border-b border-slate-100 flex items-center justify-between hover:bg-slate-50/60 transition-colors"
+          >
+            <div className="flex items-center gap-2.5">
+              <h3 className="font-semibold text-slate-800 text-sm">Historial de Cargas</h3>
+              <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 text-[11px] font-semibold">{history.length}</span>
+            </div>
+            {historyExpanded ? <ChevronUp size={15} className="text-slate-400" /> : <ChevronDown size={15} className="text-slate-400" />}
+          </button>
+
+          {historyExpanded && (
+            <div className="divide-y divide-slate-50">
+              {history.map(h => (
+                <div key={h._id} className="flex items-center gap-3 px-4 py-3 hover:bg-slate-50/60 transition-colors group">
+                  {/* Tipo badge */}
+                  <div className="shrink-0">
+                    <span className={`inline-block px-2 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wide
+                      ${ h.tipoArchivo === 'ASPIRANTES' ? 'bg-utn-blue/10 text-utn-blue'
+                       : h.tipoArchivo === 'AVATAR'     ? 'bg-violet-50 text-violet-600'
+                       :                                  'bg-emerald-50 text-emerald-700'}`}>
+                      {h.tipoArchivo}
+                    </span>
+                  </div>
+
+                  {/* Info */}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-semibold text-slate-700 truncate">{h.nombreArchivo}</p>
+                    <p className="text-[11px] text-slate-400 mt-0.5">
+                      {new Date(h.fecha).toLocaleString('es-CR', { day:'2-digit', month:'2-digit', year:'2-digit', hour:'2-digit', minute:'2-digit' })}
+                      {h.tipoMatricula && <span className="ml-2 text-slate-300">·</span>}
+                      {h.tipoMatricula && <span className="ml-2">{h.tipoMatricula}</span>}
+                    </p>
+                  </div>
+
+                  {/* Stats */}
+                  <div className="hidden sm:flex items-center gap-4 shrink-0 text-xs">
+                    <div className="text-center">
+                      <p className="font-bold text-emerald-600">{h.registrosNuevos}</p>
+                      <p className="text-[10px] text-slate-400">Nuevos</p>
+                    </div>
+                    <div className="text-center">
+                      <p className="font-bold text-slate-500">{h.registrosActualizados}</p>
+                      <p className="text-[10px] text-slate-400">Actual.</p>
+                    </div>
+                    <div className="text-center">
+                      <p className="font-bold text-slate-700">{h.registrosTotales}</p>
+                      <p className="text-[10px] text-slate-400">Total</p>
+                    </div>
+                  </div>
+
+                  {/* Delete */}
+                  <button
+                    onClick={() => handleDeleteHistory(h._id)}
+                    disabled={deletingId === h._id}
+                    className="shrink-0 p-1.5 rounded-lg text-slate-300 hover:text-red-400 hover:bg-red-50 transition-colors disabled:opacity-40"
+                    title="Eliminar registro"
+                  >
+                    {deletingId === h._id
+                      ? <Clock size={14} className="animate-spin" />
+                      : <Trash2 size={14} />}
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {!historyExpanded && (
+            <div className="px-4 py-3">
+              <p className="text-xs text-slate-400">
+                Última carga: <span className="font-semibold text-slate-600">{history[0]?.tipoArchivo}</span> — {new Date(history[0]?.fecha).toLocaleString('es-CR', { day:'2-digit', month:'2-digit', year:'2-digit', hour:'2-digit', minute:'2-digit' })}
+              </p>
+            </div>
+          )}
         </div>
       )}
     </div>
