@@ -1,6 +1,12 @@
 import AuditLog from '../models/AuditLog';
 import { Request } from 'express';
 
+function formatCedula(ced: string): string {
+  const c = String(ced).replace(/\D/g, '');
+  if (c.length === 9) return `${c[0]}-${c.slice(1, 5)}-${c.slice(5)}`;
+  return ced;
+}
+
 interface AuditEntry {
   usuario: string;
   accion: string;
@@ -21,7 +27,9 @@ export async function registrarAuditoria(entry: AuditEntry): Promise<void> {
       accion:    entry.accion,
       entidad:   entry.entidad,
       entidadId: entry.entidadId || '',
-      detalle:   entry.detalle || '',
+      detalle:   entry.detalle
+        ? entry.detalle.replace(/\b(\d{9})\b/g, (m) => formatCedula(m))
+        : '',
       cambios:   entry.cambios,
       ip:        entry.ip || '',
     });

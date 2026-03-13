@@ -4,6 +4,13 @@ import fs from 'fs';
 import path from 'path';
 import Student, { IStudent } from '../models/Student';
 
+/** Formatea cédula en formato X-XXXX-XXXX (9 dígitos) */
+function formatCedula(ced: string): string {
+  const c = ced.replace(/\D/g, '');
+  if (c.length === 9) return `${c[0]}-${c.slice(1, 5)}-${c.slice(5)}`;
+  return ced;
+}
+
 /**
  * Genera un ZIP con carpetas por estudiante que tienen todos los requisitos completos.
  * Cada carpeta: CEDULA_NOMBRE_TIPOMATRICULA/
@@ -56,7 +63,7 @@ export async function generarZipCompletos(outputPath: string): Promise<{
     archive.append(excelBuffer, { name: '!Reporte_Expedientes_Completos.xlsx' });
 
     for (const est of estudiantes) {
-      const folderName = `${est.cedula}_${est.primerApellido}_${est.nombre}_${est.tipoMatricula}`
+      const folderName = `${formatCedula(est.cedula)}_${est.primerApellido}_${est.nombre}_${est.tipoMatricula}`
         .replace(/[^a-zA-Z0-9áéíóúñÁÉÍÓÚÑ_\-]/g, '_')
         .replace(/_+/g, '_');
 
@@ -77,7 +84,7 @@ export async function generarZipCompletos(outputPath: string): Promise<{
       const resumen = [
         `EXPEDIENTE COMPLETO — ${new Date().toLocaleDateString('es-CR')}`,
         ``,
-        `Cédula:         ${est.cedula}`,
+        `Cédula:         ${formatCedula(est.cedula)}`,
         `Nombre:         ${nombreCompleto}`,
         `Tipo Matrícula: ${est.tipoMatricula}`,
         `Estado Avatar:  ${est.estadoAvatar}`,

@@ -31,6 +31,16 @@ function formatDate(iso: string) {
     + ' ' + d.toLocaleTimeString('es-CR', { hour: '2-digit', minute: '2-digit' });
 }
 
+const ENTIDADES_CEDULA = new Set(['estudiante', 'documento']);
+
+function formatEntidadId(entidad: string, id: string): string {
+  if (ENTIDADES_CEDULA.has(entidad.toLowerCase())) {
+    const c = id.replace(/\D/g, '');
+    if (c.length === 9) return `${c[0]}-${c.slice(1, 5)}-${c.slice(5)}`;
+  }
+  return id;
+}
+
 export default function AuditLog() {
   const { user } = useAuth();
   const isAdmin = user?.rol === 'Administrador';
@@ -55,9 +65,9 @@ export default function AuditLog() {
       if (filterAccion) params.accion = filterAccion;
       if (filterEntidad) params.entidad = filterEntidad;
       const data = await getAuditLogs(params);
-      setLogs(data.docs || data.logs || []);
-      setTotalPages(data.totalPages || 1);
-      setTotal(data.total || 0);
+      setLogs(data.logs || []);
+      setTotalPages(data.pagination?.pages || 1);
+      setTotal(data.pagination?.total || 0);
     } catch { /* interceptor handles 401 */ }
     finally { setLoading(false); }
   }, [page, filterUser, filterAccion, filterEntidad]);
@@ -197,7 +207,7 @@ export default function AuditLog() {
                   </td>
                   <td className="px-5 py-3 text-slate-600 text-xs">
                     {log.entidad}
-                    {log.entidadId && <span className="text-slate-400 ml-1">({log.entidadId})</span>}
+                    {log.entidadId && <span className="text-slate-400 ml-1">({formatEntidadId(log.entidad, log.entidadId)})</span>}
                   </td>
                   <td className="px-5 py-3 text-slate-500 text-xs max-w-[300px] truncate">{log.detalle || '—'}</td>
                 </tr>

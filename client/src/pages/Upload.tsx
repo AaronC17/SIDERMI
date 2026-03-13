@@ -1,4 +1,4 @@
-import { useState, useRef, type DragEvent } from 'react';
+import { useState, useRef, useCallback, useEffect, type DragEvent } from 'react';
 import {
   Upload as UploadIcon,
   FileSpreadsheet,
@@ -22,7 +22,6 @@ import {
 } from '../services/api';
 import type { UploadResult, UploadHistory } from '../types';
 import { useToast } from '../components/Toast';
-import { useEffect } from 'react';
 
 type UploadMode = 'aspirantes' | 'corte' | 'avatar';
 
@@ -47,9 +46,17 @@ export default function Upload() {
   const inputRef = useRef<HTMLInputElement>(null);
   const { addToast } = useToast();
 
-  useEffect(() => {
-    getUploadHistory().then(setHistory).catch(() => {});
-  }, [result]);
+  const fetchHistory = useCallback(() => {
+    getUploadHistory()
+      .then(data => { setHistory(data); if (data.length > 0) setHistoryExpanded(true); })
+      .catch(() => {});
+  }, []);
+
+  // Carga inicial
+  useEffect(() => { fetchHistory(); }, [fetchHistory]);
+
+  // Refresh después de cada carga exitosa
+  useEffect(() => { if (result) fetchHistory(); }, [result, fetchHistory]);
 
   const handleDeleteHistory = async (id: string) => {
     setDeletingId(id);

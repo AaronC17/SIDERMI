@@ -58,6 +58,42 @@ router.get('/', async (req: Request, res: Response) => {
     const limitNum = Math.min(200, Math.max(1, parseInt(String(limit))));
     const sortOrder = order === 'desc' ? -1 : 1;
 
+    // Ordenar por cantidad de documentos completos (campo calculado)
+    if (String(sort) === 'docsCompletos') {
+      const pipeline: any[] = [
+        { $match: filter },
+        {
+          $addFields: {
+            docsCompletos: {
+              $size: {
+                $filter: {
+                  input: [
+                    '$documentos.titulo.estado',
+                    '$documentos.cedulaFrente.estado',
+                    '$documentos.cedulaReverso.estado',
+                    '$documentos.fotoCarnet.estado',
+                  ],
+                  as: 'e',
+                  cond: { $eq: ['$$e', 'COMPLETO'] },
+                },
+              },
+            },
+          },
+        },
+        { $sort: { docsCompletos: sortOrder, primerApellido: 1 } },
+        { $skip: (pageNum - 1) * limitNum },
+        { $limit: limitNum },
+      ];
+      const [students, total] = await Promise.all([
+        Student.aggregate(pipeline),
+        Student.countDocuments(filter),
+      ]);
+      return res.json({
+        students,
+        pagination: { total, page: pageNum, pages: Math.ceil(total / limitNum), limit: limitNum },
+      });
+    }
+
     const [students, total] = await Promise.all([
       Student.find(filter)
         .sort({ [String(sort)]: sortOrder })
@@ -168,6 +204,11 @@ router.put('/:cedula/documentos', async (req: Request, res: Response) => {
     if (todosCompletos) {
       await Student.updateOne({ cedula: req.params.cedula }, {
         $set: { estadoAvatar: 'COMPLETO', verificacionRegistro: true }
+      });
+    } else if (student.estadoAvatar === 'COMPLETO') {
+      // Si ya no tiene todos los docs completos, revertir a PENDIENTE
+      await Student.updateOne({ cedula: req.params.cedula }, {
+        $set: { estadoAvatar: 'PENDIENTE', verificacionRegistro: false }
       });
     }
 

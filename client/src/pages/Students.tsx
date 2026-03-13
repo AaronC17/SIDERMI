@@ -78,8 +78,8 @@ export default function Students() {
   const [tipoMat, setTipoMat] = useState('');
   const [carrera, setCarrera] = useState('');
   const [docFiltro, setDocFiltro] = useState(''); // formato: "falta:titulo" o "tiene:titulo"
-  const [sort, setSort] = useState('primerApellido');
-  const [order, setOrder] = useState<'asc' | 'desc'>('asc');
+  const [sort, setSort] = useState('docsCompletos');
+  const [order, setOrder] = useState<'asc' | 'desc'>('desc');
 
   const [page, setPage] = useState(1);
   const [editStudent, setEditStudent] = useState<Student | null>(null);
@@ -367,7 +367,7 @@ export default function Students() {
         ) : (
           <>
             {/* ══ Vista tarjetas — móvil ══ */}
-            <div className="md:hidden divide-y divide-slate-100">
+            <div className="md:hidden divide-y divide-slate-200">
               {data.students.map(s => {
                 const carreraCode = s.codigoCarrera || s.codigoCarreraAvatar || '—';
                 const docs = [
@@ -413,10 +413,10 @@ export default function Students() {
                     <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
                       <span className={`font-bold px-1.5 py-0.5 rounded text-[9px] border ${
                         s.matriculado
-                          ? 'bg-emerald-50 text-emerald-600 border-emerald-200'
-                          : 'bg-amber-50 text-amber-600 border-amber-200'
+                          ? 'bg-emerald-50 text-emerald-600 border-utn-blue/20'
+                          : 'bg-amber-50 text-amber-600 border-utn-blue/15'
                       }`}>{s.matriculado ? 'MATRICULADO' : 'ASPIRANTE'}</span>
-                      <span className="text-[11px] font-semibold text-slate-700 bg-slate-100 border border-slate-200 px-1.5 py-0.5 rounded-md">{carreraCode}</span>
+                      <span className="text-[11px] font-semibold text-slate-700 bg-utn-blue/[0.04] border border-utn-blue/20 w-[52px] text-center py-0.5 rounded-md inline-block">{carreraCode}</span>
                       <EstadoBadge estado={s.estadoAvatar} />
                       {s.sexo && <span className="text-[11px] font-bold text-slate-500">{s.sexo}</span>}
                     </div>
@@ -465,7 +465,7 @@ export default function Students() {
                       { label: 'Carrera', field: 'codigoCarrera', w: 'w-20' },
                       { label: 'Sexo', field: 'sexo', w: 'w-14' },
                       { label: 'Estado', field: 'estadoAvatar', w: 'w-28' },
-                      { label: 'Documentos', field: '', w: 'w-32' },
+                    { label: 'Documentos', field: 'docsCompletos', w: 'w-32' },
                       { label: 'Acciones', field: '', w: 'w-20 text-center' },
                     ].map((col, i) => (
                       <th
@@ -481,7 +481,7 @@ export default function Students() {
                     ))}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-slate-200">
                   {data.students.map(s => {
                     const carreraCode = s.codigoCarrera || s.codigoCarreraAvatar || '—';
                     const docs = [
@@ -508,25 +508,25 @@ export default function Students() {
                             {s.primerApellido} {s.segundoApellido}, {s.nombre}
                           </p>
                           <p className="text-[10px] text-slate-400 mt-0.5 flex items-center gap-1.5 overflow-hidden">
-                            <span className={`font-bold px-1.5 py-0.5 rounded text-[9px] border min-w-[84px] text-center shrink-0 ${
+                            <span className={`font-bold inline-block w-[84px] text-center py-0.5 rounded text-[9px] border shrink-0 ${
                               s.matriculado
-                                ? 'bg-emerald-50 text-emerald-600 border-emerald-200'
-                                : 'bg-amber-50 text-amber-600 border-amber-200'
+                                ? 'bg-emerald-50 text-emerald-600 border-utn-blue/20'
+                                : 'bg-amber-50 text-amber-600 border-utn-blue/15'
                             }`}>
                               {s.matriculado ? 'MATRICULADO' : 'ASPIRANTE'}
                             </span>
-                            {s.correoElectronico && <span className="truncate max-w-[160px]">{s.correoElectronico}</span>}
                             {s.tipoMatricula && (
-                              <span className="font-semibold text-slate-400 min-w-[28px] text-center shrink-0">
-                                {s.tipoMatricula === 'ORDINARIA' ? 'Ord.' : 'Ext.'}
+                              <span className="font-semibold inline-block w-[34px] text-center py-0.5 rounded text-[9px] bg-utn-blue/[0.04] border border-utn-blue/15 shrink-0">
+                                {s.tipoMatricula === 'ORDINARIA' ? 'Ord' : 'Ext'}
                               </span>
                             )}
+                            {s.correoElectronico && <span className="truncate text-[12px] text-slate-400">{s.correoElectronico}</span>}
                           </p>
                         </td>
 
                         {/* Carrera */}
                         <td className="px-4 py-2.5 align-middle">
-                          <span className="text-[11px] font-semibold text-slate-700 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-md">{carreraCode}</span>
+                          <span className="text-[11px] font-semibold text-slate-700 bg-utn-blue/[0.04] border border-utn-blue/20 w-[52px] text-center py-0.5 rounded-md inline-block">{carreraCode}</span>
                         </td>
 
                         {/* Sexo */}
