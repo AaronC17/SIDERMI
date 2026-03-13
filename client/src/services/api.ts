@@ -1,15 +1,17 @@
 import axios from 'axios';
 import type { Student, DashboardStats, PaginatedResponse, UploadResult, UploadHistory } from '../types';
 
-// Usar la IP actual del navegador para conectar al backend
+// URL relativa — Vite proxy lo redirige a :4000 en dev; en producción mismo origen
 const getApiBase = () => {
   if (import.meta.env.VITE_API_BASE) return import.meta.env.VITE_API_BASE;
-  const host = window.location.hostname;
-  return `http://${host}:4000/api`;
+  return '/api';
 };
 
 const API = axios.create({
   baseURL: getApiBase(),
+  headers: {
+    'bypass-tunnel-reminder': '1',
+  },
 });
 
 // ── Interceptor: adjuntar JWT a cada request ──
