@@ -12,10 +12,16 @@ dist
 dist-ssr
 *.local
 
+# Environment files (contain secrets)
+.env
+server/.env
+client/.env
+
 # Runtime directories (generated at runtime)
 server/uploads/
 server/downloads/
 server/documents/
+server/dist/
 
 # Editor directories and files
 .vscode/*

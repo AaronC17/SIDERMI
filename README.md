@@ -1,73 +1,101 @@
-# React + TypeScript + Vite
+# SIDERMI — Sistema Integrado de Datos y Requisitos de Matrícula de Ingreso
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Aplicación web full-stack para la gestión de matrícula universitaria en la UTN.
 
-Currently, two official plugins are available:
+## Requisitos
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- [Node.js](https://nodejs.org/) v18 o superior
+- [MongoDB](https://www.mongodb.com/docs/manual/installation/) 6.0 o superior (corriendo localmente)
+- npm 9 o superior
 
-## React Compiler
+## Instalación rápida
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+# Instalar dependencias del servidor y del cliente
+npm run install:all
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## Configuración de entorno
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+1. Copie el archivo de ejemplo para el servidor:
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+   ```bash
+   cp server/.env.example server/.env
+   ```
+
+2. Edite `server/.env` y configure al menos `JWT_SECRET` con un valor seguro y aleatorio.
+
+   Las variables disponibles son:
+
+   | Variable       | Descripción                               | Valor por defecto                                |
+   |----------------|-------------------------------------------|--------------------------------------------------|
+   | `PORT`         | Puerto del servidor Express               | `4000`                                           |
+   | `MONGODB_URI`  | URI de conexión a MongoDB                 | `mongodb://127.0.0.1:27017/registro_utn`         |
+   | `JWT_SECRET`   | Clave secreta para firmar tokens JWT      | *Debe cambiarse en producción*                   |
+   | `NODE_ENV`     | Entorno (`development` / `production`)    | `development`                                    |
+
+## Ejecutar en desarrollo
+
+Abra **dos terminales** y ejecute cada uno:
+
+```bash
+# Terminal 1 — Servidor (Express + MongoDB, puerto 4000)
+npm run dev:server
+
+# Terminal 2 — Cliente (Vite dev server, puerto 5173)
+npm run dev:client
+```
+
+Acceda a la aplicación en [http://localhost:5173](http://localhost:5173).
+
+### Credenciales por defecto
+
+| Usuario   | Contraseña    | Rol            |
+|-----------|---------------|----------------|
+| admin     | utn2026       | Administrador  |
+| registro  | registro2026  | Registro       |
+
+> **Nota**: El servidor crea estos usuarios automáticamente al iniciar si no existen.  
+> ⚠️ **En producción, cambie estas contraseñas de inmediato** desde la sección de gestión de usuarios.
+
+## Datos de prueba (seed)
+
+Para insertar 35 estudiantes de ejemplo junto con historial de subidas:
+
+```bash
+npm run seed
+```
+
+## Build para producción
+
+```bash
+npm run build
+```
+
+El servidor en modo producción sirve el frontend compilado desde `client/dist/`.
+
+## Estructura del proyecto
+
+```
+SIDERMI/
+├── client/         # Frontend React + TypeScript + Vite
+│   ├── src/
+│   │   ├── components/
+│   │   ├── context/
+│   │   ├── pages/
+│   │   ├── services/
+│   │   └── types/
+│   └── package.json
+├── server/         # Backend Node.js + Express + MongoDB
+│   ├── src/
+│   │   ├── config/
+│   │   ├── middleware/
+│   │   ├── models/
+│   │   ├── routes/
+│   │   ├── services/
+│   │   ├── index.ts
+│   │   └── seed.ts
+│   ├── .env.example
+│   └── package.json
+└── package.json    # Scripts raíz para facilitar el arranque
 ```

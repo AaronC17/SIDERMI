@@ -4,7 +4,7 @@ import {
   ClipboardList, UserCheck, UserX, Building2, GraduationCap, ShieldCheck,
   ChevronLeft, ChevronRight, PieChart, TrendingUp,
 } from 'lucide-react';
-import { getDashboard, getPendientes, getPorDocumento, descargarCompletos } from '../services/api';
+import { getDashboard, getPorDocumento, descargarCompletos } from '../services/api';
 import type { DashboardStats } from '../types';
 import { useToast } from '../components/Toast';
 
@@ -59,16 +59,6 @@ function Pagination({ page, total, onChange }: { page: number; total: number; on
       </div>
     </div>
   );
-}
-
-interface PendienteItem {
-  cedula: string;
-  nombre: string;
-  primerApellido: string;
-  segundoApellido: string;
-  correoElectronico: string;
-  estadoAvatar: string;
-  faltantes: string[];
 }
 
 const DONUT_COLORS: Record<string, string> = {
@@ -216,14 +206,10 @@ function MiniStat({ value, label, colorClass }: { value: number; label: string; 
 export default function Stats() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [view, setView] = useState<'resumen' | 'carreras' | 'genero' | 'grafica' | 'porDocumento'>('resumen');
-  const [pendientes, setPendientes] = useState<PendienteItem[]>([]);
-  const [pendientesLoaded, setPendientesLoaded] = useState(false);
   const [docFilter, setDocFilter] = useState('titulo');
   const [docResults, setDocResults] = useState<any[]>([]);
   const [docLoading, setDocLoading] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [pendientesSearch, setPendientesSearch] = useState('');
-  const [pendientesPage, setPendientesPage] = useState(1);
   const [docPage, setDocPage] = useState(1);
   const { addToast } = useToast();
 
@@ -233,18 +219,6 @@ export default function Stats() {
       .catch(() => addToast('Error cargando estadísticas', 'error'))
       .finally(() => setLoading(false));
   }, []);
-
-  useEffect(() => {
-    if (view === 'pendientes' && !pendientesLoaded) {
-      getPendientes()
-        .then((data: any) => {
-          setPendientes(Array.isArray(data) ? data : (data?.estudiantes ?? []));
-          setPendientesLoaded(true);
-          setPendientesPage(1);
-        })
-        .catch(() => addToast('Error cargando pendientes', 'error'));
-    }
-  }, [view]);
 
   useEffect(() => {
     if (view === 'porDocumento') {
@@ -274,20 +248,6 @@ export default function Stats() {
       addToast(msg, 'error');
     }
   };
-
-  const filteredPendientes = useMemo(() => {
-    const q = pendientesSearch.trim().toLowerCase();
-    if (!q) return pendientes;
-    return pendientes.filter(p =>
-      p.cedula.includes(q) ||
-      `${p.nombre} ${p.primerApellido} ${p.segundoApellido}`.toLowerCase().includes(q)
-    );
-  }, [pendientes, pendientesSearch]);
-
-  const pagedPendientes = useMemo(() => {
-    const start = (pendientesPage - 1) * PAGE_SIZE;
-    return filteredPendientes.slice(start, start + PAGE_SIZE);
-  }, [filteredPendientes, pendientesPage]);
 
   const pagedDocResults = useMemo(() => {
     const start = (docPage - 1) * PAGE_SIZE;
