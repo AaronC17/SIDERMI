@@ -1,0 +1,16 @@
+{
+  "name": "sidermi",
+  "version": "2.0.0",
+  "description": "Sistema Integrado de Datos y Requisitos de Matrícula de Ingreso",
+  "private": true,
+  "scripts": {
+    "install:all": "npm install --prefix server && npm install --prefix client",
+    "dev:server": "npm run dev --prefix server",
+    "dev:client": "npm run dev --prefix client",
+    "build:server": "npm run build --prefix server",
+    "build:client": "npm run build --prefix client",
+    "build": "npm run build:server && npm run build:client",
+    "start": "npm run start --prefix server",
+    "seed": "cd server && npx ts-node src/seed.ts"
+  }
+}
