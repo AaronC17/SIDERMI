@@ -1,10 +1,20 @@
 import { Router, Request, Response } from 'express';
+import fs from 'fs';
 import { uploadDocument } from '../middleware/upload';
 import Student from '../models/Student';
 import path from 'path';
 import { registrarAuditoria, auditFromReq } from '../services/auditService';
 
 const router = Router();
+
+const DOC_LABELS: Record<string, string> = {
+  titulo:          'Título de Bachillerato',
+  cedulaFrente:    'Cédula (Frente)',
+  cedulaReverso:   'Cédula (Reverso)',
+  fotoCarnet:      'Foto Carnet',
+  formularioMatricula: 'Formulario de Matrícula',
+  otros:           'Otros',
+};
 
 // POST /api/documents/:cedula/upload/:tipoDoc - Subir documento de un estudiante
 router.post('/:cedula/upload/:tipoDoc', uploadDocument.single('archivo'), async (req: Request, res: Response) => {
@@ -53,7 +63,7 @@ router.post('/:cedula/upload/:tipoDoc', uploadDocument.single('archivo'), async 
       accion: 'SUBIR_ARCHIVO',
       entidad: 'documento',
       entidadId: cedula,
-      detalle: `Archivo ${tipoDoc} subido para ${cedula}`,
+      detalle: `"${DOC_LABELS[tipoDoc] ?? tipoDoc}" subido`,
     });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
@@ -74,6 +84,50 @@ router.get('/:cedula', async (req: Request, res: Response) => {
       cedula: student.cedula,
       nombre: `${student.nombre} ${student.primerApellido}`.trim(),
       documentos: student.documentos,
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// DELETE /api/documents/:cedula/:tipoDoc - Quitar el archivo digital de un documento
+router.delete('/:cedula/:tipoDoc', async (req: Request, res: Response) => {
+  try {
+    const { cedula, tipoDoc } = req.params;
+    const validTypes = ['titulo', 'cedulaFrente', 'cedulaReverso', 'fotoCarnet', 'formularioMatricula', 'otros'];
+
+    if (!validTypes.includes(tipoDoc)) {
+      return res.status(400).json({ error: 'Tipo de documento inválido' });
+    }
+
+    const student = await Student.findOne({ cedula });
+    if (!student) return res.status(404).json({ error: 'Estudiante no encontrado' });
+
+    const archivoActual = (student.documentos as any)[tipoDoc]?.archivo as string | undefined;
+
+    await Student.updateOne(
+      { cedula },
+      { $unset: { [`documentos.${tipoDoc}.archivo`]: '' } }
+    );
+
+    // Borrar el archivo físico si existe
+    if (archivoActual) {
+      const docsDir = path.join(__dirname, '../../documents');
+      const filePath = path.join(docsDir, archivoActual);
+      try {
+        if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+      } catch { /* ignorar error de fs */ }
+    }
+
+    res.json({ success: true, message: 'Archivo eliminado' });
+
+    const { usuario, ip } = auditFromReq(req);
+    registrarAuditoria({
+      usuario, ip,
+      accion: 'ELIMINAR_ARCHIVO',
+      entidad: 'documento',
+      entidadId: cedula,
+      detalle: `"${DOC_LABELS[tipoDoc] ?? tipoDoc}" eliminado`,
     });
   } catch (error: any) {
     res.status(500).json({ error: error.message });

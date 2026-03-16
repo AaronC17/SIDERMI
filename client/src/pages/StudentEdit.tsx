@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { X, Save, Upload as UploadIcon, FileText, User, Mail, Phone, ClipboardList } from 'lucide-react';
-import { updateStudent, updateDocumentos, uploadDocument } from '../services/api';
+import { X, Save, Upload as UploadIcon, FileText, User, Mail, Phone, ClipboardList, CheckCircle, Trash2, Loader2 } from 'lucide-react';
+import { updateStudent, updateDocumentos, uploadDocument, deleteDocument } from '../services/api';
 import type { Student } from '../types';
 import { useToast } from '../components/Toast';
 
@@ -62,6 +62,12 @@ export default function StudentEditModal({ student, onClose, onSaved }: Props) {
 
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState<string | null>(null);
+  const [uploadedFiles, setUploadedFiles] = useState<Record<string, string | null>>(
+    Object.fromEntries(
+      Object.entries(student.documentos || {}).map(([k, v]) => [k, v?.archivo ?? null])
+    )
+  );
   const { addToast } = useToast();
 
   const handleSave = async () => {
@@ -81,16 +87,30 @@ export default function StudentEditModal({ student, onClose, onSaved }: Props) {
   const handleFileUpload = async (tipoDoc: string, file: File) => {
     setUploading(tipoDoc);
     try {
-      await uploadDocument(student.cedula, tipoDoc, file);
-      addToast(`Archivo ${DOC_LABELS[tipoDoc]} subido`, 'success');
+      const result = await uploadDocument(student.cedula, tipoDoc, file);
+      addToast(`Archivo ${DOC_LABELS[tipoDoc] || tipoDoc} subido`, 'success');
+      setUploadedFiles(prev => ({ ...prev, [tipoDoc]: result.archivo }));
       setDocs(prev => ({
         ...prev,
-        [tipoDoc]: { ...prev[tipoDoc], estado: prev[tipoDoc].estado },
+        [tipoDoc]: { ...prev[tipoDoc], estado: 'COMPLETO' },
       }));
     } catch {
       addToast('Error al subir archivo', 'error');
     } finally {
       setUploading(null);
+    }
+  };
+
+  const handleDeleteFile = async (tipoDoc: string) => {
+    setDeleting(tipoDoc);
+    try {
+      await deleteDocument(student.cedula, tipoDoc);
+      addToast('Archivo eliminado', 'success');
+      setUploadedFiles(prev => ({ ...prev, [tipoDoc]: null }));
+    } catch {
+      addToast('Error al eliminar archivo', 'error');
+    } finally {
+      setDeleting(null);
     }
   };
 
@@ -238,61 +258,84 @@ export default function StudentEditModal({ student, onClose, onSaved }: Props) {
               </div>
               Verificación de Documentos
             </h4>
-            <div className="space-y-1.5">
-              {Object.entries(DOC_LABELS).map(([key, label]) => (
-                <div key={key}>
-                  {/* Mobile: stacked card */}
-                  <div className="sm:hidden p-3 bg-utn-blue/[0.025] rounded-xl border border-utn-blue/[0.07] space-y-2">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="text-sm font-medium text-slate-700 leading-tight">{label}</span>
+            <div className="space-y-2">
+              {Object.entries(DOC_LABELS).map(([key, label]) => {
+                const tieneArchivo = !!uploadedFiles[key];
+                const accionCol = (shrink = false) => (
+                  uploading === key ? (
+                    <div className={`flex items-center justify-center w-[30px] h-[30px] rounded-lg bg-slate-50 border border-slate-200 ${shrink ? 'shrink-0' : ''}`}>
+                      <Loader2 size={12} className="animate-spin text-slate-400" />
+                    </div>
+                  ) : tieneArchivo ? (
+                    <div className={`flex items-center gap-1.5 ${shrink ? 'shrink-0' : ''}`}>
+                      <div className="flex items-center justify-center w-[30px] h-[30px] rounded-lg text-emerald-600 bg-emerald-50 border-2 border-emerald-325 shadow-sm">
+                        <CheckCircle size={14} />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteFile(key)}
+                        disabled={deleting === key}
+                        className="flex items-center justify-center w-[30px] h-[30px] rounded-lg text-red-500 bg-white border-2 border-red-325 hover:bg-red-50 hover:text-red-600 hover:border-red-400 transition-all disabled:opacity-40 shadow-sm"
+                      >
+                        {deleting === key ? <Loader2 size={11} className="animate-spin" /> : <Trash2 size={11} />}
+                      </button>
+                    </div>
+                  ) : (
+                    <label className={`flex items-center justify-center gap-1.5 px-3 h-[30px] text-xs font-semibold text-utn-blue bg-utn-blue/5 rounded-lg border border-utn-blue/30 hover:bg-utn-blue/10 hover:border-utn-blue/50 cursor-pointer transition-all shadow-sm whitespace-nowrap ${shrink ? 'shrink-0' : 'w-full'}`}>
+                      <UploadIcon size={11} />
+                      Subir
+                      <input type="file" accept=".pdf,.jpg,.png,.doc,.docx" className="hidden"
+                        onChange={e => { const f = e.target.files?.[0]; if (f) handleFileUpload(key, f); e.target.value = ''; }} />
+                    </label>
+                  )
+                );
+
+                return (
+                  <div key={key}>
+                    {/* Mobile */}
+                    <div className={`sm:hidden p-3 rounded-xl border space-y-2 transition-colors ${tieneArchivo ? 'bg-emerald-50/25 border-emerald-200/60' : 'bg-utn-blue/[0.025] border-utn-blue/[0.07]'}`}>
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-sm font-semibold text-slate-700 leading-tight">{label}</span>
+                        <select
+                          value={docs[key]?.estado || 'NO_REVISADO'}
+                          onChange={e => setDocs(d => ({ ...d, [key]: { ...d[key], estado: e.target.value as typeof DOC_ESTADOS[number] } }))}
+                          className={`shrink-0 px-2 py-1 rounded-lg text-xs font-semibold border-0 outline-none cursor-pointer ${DOC_ESTADO_STYLE[docs[key]?.estado || 'NO_REVISADO']}`}
+                        >
+                          {DOC_ESTADOS.map(e => <option key={e} value={e}>{e.replace('_', ' ')}</option>)}
+                        </select>
+                      </div>
+                      <div className="flex gap-2">
+                        <input
+                          placeholder="Observación…"
+                          value={docs[key]?.observacion || ''}
+                          onChange={e => setDocs(d => ({ ...d, [key]: { ...d[key], observacion: e.target.value } }))}
+                          className="flex-1 px-2.5 py-1.5 bg-white rounded-lg text-xs border border-slate-200 focus:border-utn-blue outline-none min-w-0"
+                        />
+                        {accionCol(true)}
+                      </div>
+                    </div>
+
+                    {/* Desktop */}
+                    <div className={`hidden sm:grid grid-cols-[1fr_120px_1fr_68px] gap-2 items-center py-2.5 px-3 rounded-xl border transition-colors ${tieneArchivo ? 'bg-emerald-50/25 border-emerald-200/60' : 'bg-utn-blue/[0.025] border-utn-blue/[0.07] hover:bg-utn-blue/[0.05]'}`}>
+                      <span className="text-sm text-slate-700 font-semibold">{label}</span>
                       <select
                         value={docs[key]?.estado || 'NO_REVISADO'}
                         onChange={e => setDocs(d => ({ ...d, [key]: { ...d[key], estado: e.target.value as typeof DOC_ESTADOS[number] } }))}
-                        className={`shrink-0 px-2 py-1 rounded-lg text-xs font-semibold border-0 outline-none cursor-pointer ${DOC_ESTADO_STYLE[docs[key]?.estado || 'NO_REVISADO']}`}
+                        className={`px-2 py-1.5 rounded-lg text-xs font-semibold border-0 outline-none cursor-pointer ${DOC_ESTADO_STYLE[docs[key]?.estado || 'NO_REVISADO']}`}
                       >
                         {DOC_ESTADOS.map(e => <option key={e} value={e}>{e.replace('_', ' ')}</option>)}
                       </select>
-                    </div>
-                    <div className="flex gap-2">
                       <input
                         placeholder="Observación…"
                         value={docs[key]?.observacion || ''}
                         onChange={e => setDocs(d => ({ ...d, [key]: { ...d[key], observacion: e.target.value } }))}
-                        className="flex-1 px-2.5 py-1.5 bg-white rounded-lg text-xs border border-slate-200 focus:border-utn-blue outline-none min-w-0"
+                        className="px-2 py-1.5 bg-white rounded-lg text-xs border border-slate-200 focus:border-utn-blue outline-none"
                       />
-                      <label className="inline-flex items-center justify-center gap-1 px-3 py-1.5 text-xs font-semibold text-utn-blue bg-utn-blue/5 rounded-lg hover:bg-utn-blue/10 cursor-pointer transition-colors border border-utn-blue/10 shrink-0">
-                        <UploadIcon size={11} />
-                        {uploading === key ? '…' : 'Subir'}
-                        <input type="file" accept=".pdf,.jpg,.png,.doc,.docx" className="hidden"
-                          onChange={e => { const f = e.target.files?.[0]; if (f) handleFileUpload(key, f); e.target.value = ''; }} />
-                      </label>
+                      {accionCol()}
                     </div>
                   </div>
-                  {/* Desktop: single row */}
-                  <div className="hidden sm:grid grid-cols-[1fr_120px_1fr_70px] gap-2 items-center py-2.5 px-3 bg-utn-blue/[0.025] rounded-xl border border-utn-blue/[0.07] hover:bg-utn-blue/[0.05] transition-colors">
-                    <span className="text-sm text-slate-700 font-medium">{label}</span>
-                    <select
-                      value={docs[key]?.estado || 'NO_REVISADO'}
-                      onChange={e => setDocs(d => ({ ...d, [key]: { ...d[key], estado: e.target.value as typeof DOC_ESTADOS[number] } }))}
-                      className={`px-2 py-1.5 rounded-lg text-xs font-semibold border-0 outline-none cursor-pointer ${DOC_ESTADO_STYLE[docs[key]?.estado || 'NO_REVISADO']}`}
-                    >
-                      {DOC_ESTADOS.map(e => <option key={e} value={e}>{e.replace('_', ' ')}</option>)}
-                    </select>
-                    <input
-                      placeholder="Observación…"
-                      value={docs[key]?.observacion || ''}
-                      onChange={e => setDocs(d => ({ ...d, [key]: { ...d[key], observacion: e.target.value } }))}
-                      className="px-2 py-1.5 bg-white rounded-lg text-xs border border-slate-200 focus:border-utn-blue outline-none"
-                    />
-                    <label className="inline-flex items-center justify-center gap-1 px-2 py-1.5 text-xs font-medium text-utn-blue bg-utn-blue/5 rounded-lg hover:bg-utn-blue/10 cursor-pointer transition-colors border border-utn-blue/10">
-                      <UploadIcon size={11} />
-                      {uploading === key ? '…' : 'Subir'}
-                      <input type="file" accept=".pdf,.jpg,.png,.doc,.docx" className="hidden"
-                        onChange={e => { const f = e.target.files?.[0]; if (f) handleFileUpload(key, f); e.target.value = ''; }} />
-                    </label>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
 

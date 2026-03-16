@@ -132,6 +132,9 @@ router.get('/:cedula', async (req: Request, res: Response) => {
 // PUT /api/students/:cedula - Actualizar datos del estudiante (editar manual)
 router.put('/:cedula', async (req: Request, res: Response) => {
   try {
+    const before = await Student.findOne({ cedula: req.params.cedula });
+    if (!before) return res.status(404).json({ error: 'Estudiante no encontrado' });
+
     const student = await Student.findOneAndUpdate(
       { cedula: req.params.cedula },
       { $set: req.body },
@@ -155,13 +158,25 @@ router.put('/:cedula', async (req: Request, res: Response) => {
       await student.save();
     }
 
+    const CAMPOS_AUDITABLES = ['estadoAvatar', 'observaciones', 'codigoCarreraManual', 'sexo'] as const;
+    const cambios: Record<string, { antes: any; despues: any }> = {};
+    for (const campo of CAMPOS_AUDITABLES) {
+      if (campo in req.body && String((before as any)[campo] ?? '') !== String(req.body[campo] ?? '')) {
+        cambios[campo] = { antes: (before as any)[campo] ?? '', despues: req.body[campo] ?? '' };
+      }
+    }
+    const detalle = Object.entries(cambios).length > 0
+      ? Object.entries(cambios).map(([k, v]) => `${k}: "${v.antes}" → "${v.despues}"`).join(' | ')
+      : `Estudiante ${req.params.cedula} actualizado`;
+
     const { usuario, ip } = auditFromReq(req);
     await registrarAuditoria({
       usuario, ip,
       accion: 'EDITAR',
       entidad: 'estudiante',
       entidadId: req.params.cedula,
-      detalle: `Estudiante ${req.params.cedula} actualizado`,
+      detalle,
+      cambios: Object.keys(cambios).length > 0 ? cambios : undefined,
     });
 
     res.json(student);
@@ -211,15 +226,6 @@ router.put('/:cedula/documentos', async (req: Request, res: Response) => {
         $set: { estadoAvatar: 'PENDIENTE', verificacionRegistro: false }
       });
     }
-
-    const { usuario, ip } = auditFromReq(req);
-    await registrarAuditoria({
-      usuario, ip,
-      accion: 'EDITAR',
-      entidad: 'documento',
-      entidadId: req.params.cedula,
-      detalle: `Documentos de ${req.params.cedula} actualizados`,
-    });
 
     res.json(student);
   } catch (error: any) {

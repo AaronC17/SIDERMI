@@ -17,11 +17,10 @@ export const useToast = () => useContext(ToastContext);
 
 let nextId = 0;
 
-const ICONS = { success: CheckCircle, error: XCircle, info: Info };
-const COLORS = {
-  success: 'bg-emerald-600',
-  error: 'bg-red-600',
-  info: 'bg-utn-blue',
+const STYLES = {
+  success: { icon: CheckCircle, iconColor: 'text-emerald-500', accent: 'bg-emerald-500' },
+  error:   { icon: XCircle,     iconColor: 'text-red-500',     accent: 'bg-red-400'     },
+  info:    { icon: Info,        iconColor: 'text-utn-blue',    accent: 'bg-utn-blue'    },
 };
 
 export function ToastProvider({ children }: { children: ReactNode }) {
@@ -32,7 +31,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     setToasts(prev => [...prev, { id, message, type }]);
     setTimeout(() => {
       setToasts(prev => prev.filter(t => t.id !== id));
-    }, 4000);
+    }, 3000);
   }, []);
 
   const dismiss = (id: number) => setToasts(prev => prev.filter(t => t.id !== id));
@@ -40,19 +39,25 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   return (
     <ToastContext.Provider value={{ addToast }}>
       {children}
-      <div className="fixed top-4 right-4 z-[10000] flex flex-col gap-2">
+      <div className="fixed bottom-5 right-5 z-[10000] flex flex-col gap-2 items-end">
         {toasts.map(t => {
-          const Icon = ICONS[t.type];
+          const { icon: Icon, iconColor, accent } = STYLES[t.type];
           return (
             <div
               key={t.id}
-              className={`toast-animate flex items-center gap-3 px-4 py-3 rounded-xl text-white text-sm shadow-lg shadow-black/15 ${COLORS[t.type]} max-w-sm`}
+              className="toast-animate flex items-stretch bg-white rounded-xl border border-slate-200 shadow-lg shadow-black/[0.07] max-w-[280px] overflow-hidden"
             >
-              <Icon size={18} className="shrink-0" />
-              <span className="flex-1">{t.message}</span>
-              <button onClick={() => dismiss(t.id)} className="p-0.5 hover:bg-white/20 rounded">
-                <X size={14} />
-              </button>
+              <div className={`w-1 shrink-0 ${accent}`} />
+              <div className="flex items-center gap-2.5 pl-3 pr-2.5 py-2.5 flex-1 min-w-0">
+                <Icon size={14} className={`shrink-0 ${iconColor}`} />
+                <span className="flex-1 text-xs font-medium text-slate-600 leading-snug">{t.message}</span>
+                <button
+                  onClick={() => dismiss(t.id)}
+                  className="shrink-0 p-0.5 rounded text-slate-300 hover:text-slate-500 transition-colors"
+                >
+                  <X size={12} />
+                </button>
+              </div>
             </div>
           );
         })}
