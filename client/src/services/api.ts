@@ -128,8 +128,11 @@ export const deleteUploadHistory = (id: string) =>
 export const uploadDocument = (cedula: string, tipoDoc: string, file: File) => {
   const fd = new FormData();
   fd.append('archivo', file);
-  return API.post(`/documents/${cedula}/upload/${tipoDoc}`, fd).then(r => r.data);
+  return API.post<{ success: boolean; archivo: string }>(`/documents/${cedula}/upload/${tipoDoc}`, fd).then(r => r.data);
 };
+
+export const deleteDocument = (cedula: string, tipoDoc: string) =>
+  API.delete(`/documents/${cedula}/${tipoDoc}`).then(r => r.data);
 
 export const getDocuments = (cedula: string) =>
   API.get(`/documents/${cedula}`).then(r => r.data);

@@ -1,8 +1,95 @@
 import archiver from 'archiver';
 import ExcelJS from 'exceljs';
 import fs from 'fs';
+import PDFDocument from 'pdfkit';
 import path from 'path';
 import Student, { IStudent } from '../models/Student';
+
+const IMAGE_EXTS = new Set(['.jpg', '.jpeg', '.png', '.webp']);
+
+/**
+ * Convierte un archivo de imagen a un buffer PDF de una página (A4).
+ * Si el archivo ya es PDF lo devuelve tal cual.
+ */
+async function imagenAPdf(imagePath: string, titulo?: string): Promise<Buffer> {
+  const ext = path.extname(imagePath).toLowerCase();
+  if (ext === '.pdf') return fs.readFileSync(imagePath);
+
+  return new Promise((resolve, reject) => {
+    const doc = new PDFDocument({ autoFirstPage: false, margin: 0 });
+    const chunks: Buffer[] = [];
+    doc.on('data', (c: Buffer) => chunks.push(c));
+    doc.on('end', () => resolve(Buffer.concat(chunks)));
+    doc.on('error', reject);
+
+    doc.addPage({ size: 'A4', margin: 20 });
+
+    if (titulo) {
+      doc.fontSize(11).fillColor('#142D5C').font('Helvetica-Bold')
+        .text(titulo, { align: 'center' });
+      doc.moveDown(0.5);
+    }
+
+    const margen = 20;
+    const anchoDisp = doc.page.width - margen * 2;
+    const yInicio   = titulo ? doc.y : margen;
+    const altoDisp  = doc.page.height - yInicio - margen;
+
+    doc.image(imagePath, margen, yInicio, {
+      fit: [anchoDisp, altoDisp],
+      align: 'center',
+      valign: 'center',
+    });
+
+    doc.end();
+  });
+}
+
+/**
+ * Crea un PDF de dos páginas: página 1 = cédula frente, página 2 = cédula reverso.
+ * Sólo acepta imágenes; si alguna ruta es PDF se incluye como página independiente
+ * simplificada (texto de aviso + la ruta).
+ */
+async function cedulaAPdf(frentePath: string, reversoPath: string): Promise<Buffer> {
+  return new Promise((resolve, reject) => {
+    const doc = new PDFDocument({ autoFirstPage: false, margin: 0 });
+    const chunks: Buffer[] = [];
+    doc.on('data', (c: Buffer) => chunks.push(c));
+    doc.on('end', () => resolve(Buffer.concat(chunks)));
+    doc.on('error', reject);
+
+    const agregarPagina = (filePath: string, etiqueta: string) => {
+      const ext = path.extname(filePath).toLowerCase();
+      doc.addPage({ size: 'A4', margin: 20 });
+      doc.fontSize(11).fillColor('#142D5C').font('Helvetica-Bold')
+        .text(etiqueta, { align: 'center' });
+      doc.moveDown(0.5);
+
+      const margen  = 20;
+      const anchoDisp = doc.page.width - margen * 2;
+      const altoDisp  = doc.page.height - doc.y - margen;
+
+      if (IMAGE_EXTS.has(ext)) {
+        doc.image(filePath, margen, doc.y, {
+          fit: [anchoDisp, altoDisp],
+          align: 'center',
+          valign: 'center',
+        });
+      } else {
+        // Si ya es PDF, avisamos (pdfkit no puede incrustar PDFs)
+        doc.fontSize(10).fillColor('#64748B').font('Helvetica')
+          .text('(El archivo original ya es un PDF — ver archivo cedula_frente.pdf o cedula_reverso.pdf)', {
+            align: 'center',
+          });
+      }
+    };
+
+    if (fs.existsSync(frentePath))  agregarPagina(frentePath,  'CÉDULA — FRENTE');
+    if (fs.existsSync(reversoPath)) agregarPagina(reversoPath, 'CÉDULA — REVERSO');
+
+    doc.end();
+  });
+}
 
 /** Formatea cédula en formato X-XXXX-XXXX (9 dígitos) */
 function formatCedula(ced: string): string {
@@ -34,67 +121,109 @@ export async function generarZipCompletos(outputPath: string): Promise<{
   const zipFileName = `expedientes_completos_${new Date().toISOString().split('T')[0]}.zip`;
   const zipPath = path.join(outputPath, zipFileName);
 
-  // Crear directorio si no existe
   if (!fs.existsSync(outputPath)) {
     fs.mkdirSync(outputPath, { recursive: true });
   }
 
-  // Generar Excel ANTES de abrir el stream del archivo ZIP (requiere await)
+  const docsDir = path.join(__dirname, '../../documents');
+
+  // ── Pre-generar todo el contenido ANTES de abrir el stream del ZIP ──────
+  // (archiver no tolera awaits dentro de su callback sincrónico)
   const excelBuffer = await generarExcelReporte(estudiantes);
 
+  type EntradaEstudiante = {
+    folderName: string;
+    tituloPdf?: Buffer;
+    cedulaPdf?: Buffer;
+    otrosArchivos: Array<{ filePath: string; archiveName: string }>;
+    resumen: string;
+  };
+
+  const entradas: EntradaEstudiante[] = [];
+
+  for (const est of estudiantes) {
+    const folderName = `${formatCedula(est.cedula)}_${est.primerApellido}_${est.nombre}_${est.tipoMatricula}`
+      .replace(/[^a-zA-Z0-9áéíóúñÁÉÍÓÚÑ_\-]/g, '_')
+      .replace(/_+/g, '_');
+
+    const nombreCompleto = `${est.nombre} ${est.primerApellido} ${est.segundoApellido || ''}`.trim();
+
+    // 1. título.pdf
+    let tituloPdf: Buffer | undefined;
+    const tituloDoc = est.documentos.titulo;
+    if (tituloDoc?.archivo) {
+      const tituloPath = path.join(docsDir, tituloDoc.archivo);
+      if (fs.existsSync(tituloPath)) {
+        tituloPdf = await imagenAPdf(
+          tituloPath,
+          `TÍTULO — ${nombreCompleto}  |  Cédula: ${formatCedula(est.cedula)}`,
+        );
+      }
+    }
+
+    // 2. cedula.pdf (frente página 1, reverso página 2)
+    let cedulaPdf: Buffer | undefined;
+    const frentePath  = est.documentos.cedulaFrente?.archivo
+      ? path.join(docsDir, est.documentos.cedulaFrente.archivo) : null;
+    const reversoPath = est.documentos.cedulaReverso?.archivo
+      ? path.join(docsDir, est.documentos.cedulaReverso.archivo) : null;
+    if (frentePath || reversoPath) {
+      cedulaPdf = await cedulaAPdf(frentePath ?? '', reversoPath ?? '');
+    }
+
+    // 3. Resto sin conversión
+    const otrosDocs = ['fotoCarnet', 'formularioMatricula', 'otros'] as const;
+    const otrosArchivos: EntradaEstudiante['otrosArchivos'] = [];
+    for (const docType of otrosDocs) {
+      const doc = est.documentos[docType];
+      if (doc?.archivo) {
+        const filePath = path.join(docsDir, doc.archivo);
+        if (fs.existsSync(filePath)) {
+          otrosArchivos.push({
+            filePath,
+            archiveName: `${folderName}/${docType}${path.extname(doc.archivo)}`,
+          });
+        }
+      }
+    }
+
+    // 4. Resumen
+    const resumen = [
+      `EXPEDIENTE COMPLETO — ${new Date().toLocaleDateString('es-CR')}`,
+      ``,
+      `Cédula:         ${formatCedula(est.cedula)}`,
+      `Nombre:         ${nombreCompleto}`,
+      `Tipo Matrícula: ${est.tipoMatricula}`,
+      `Estado Avatar:  ${est.estadoAvatar}`,
+      `Correo:         ${est.correoElectronico || '—'}`,
+      ``,
+      `DOCUMENTOS:`,
+      `  Título:         ${est.documentos.titulo.estado}${tituloDoc?.archivo ? ' (PDF adjunto)' : ' (sin archivo digital)'}`,
+      `  Cédula Frente:  ${est.documentos.cedulaFrente.estado}${frentePath ? ' (incluido en cedula.pdf)' : ' (sin archivo digital)'}`,
+      `  Cédula Reverso: ${est.documentos.cedulaReverso.estado}${reversoPath ? ' (incluido en cedula.pdf)' : ' (sin archivo digital)'}`,
+    ].join('\n');
+
+    entradas.push({ folderName, tituloPdf, cedulaPdf, otrosArchivos, resumen });
+  }
+
+  // ── Construir el ZIP (sin awaits) ────────────────────────────────────────
   const output = fs.createWriteStream(zipPath);
   const archive = archiver('zip', { zlib: { level: 9 } });
 
   return new Promise((resolve, reject) => {
-    output.on('close', () => {
-      resolve({
-        totalEstudiantes: estudiantes.length,
-        archivoZip: zipPath,
-      });
-    });
-
+    output.on('close', () => resolve({ totalEstudiantes: estudiantes.length, archivoZip: zipPath }));
     archive.on('error', reject);
     archive.pipe(output);
 
-    const docsDir = path.join(__dirname, '../../documents');
-    const docTypes = ['titulo', 'cedulaFrente', 'cedulaReverso', 'fotoCarnet', 'formularioMatricula', 'otros'] as const;
-
-    // ── Excel va primero (prefijo "!" hace que ordene antes que las carpetas) ──
+    // Excel va primero (prefijo "!" lo ordena antes que las carpetas)
     archive.append(excelBuffer, { name: '!Reporte_Expedientes_Completos.xlsx' });
 
-    for (const est of estudiantes) {
-      const folderName = `${formatCedula(est.cedula)}_${est.primerApellido}_${est.nombre}_${est.tipoMatricula}`
-        .replace(/[^a-zA-Z0-9áéíóúñÁÉÍÓÚÑ_\-]/g, '_')
-        .replace(/_+/g, '_');
-
-      // Agregar cada documento físico que tenga archivo subido
-      for (const docType of docTypes) {
-        const doc = est.documentos[docType];
-        if (doc?.archivo) {
-          const filePath = path.join(docsDir, doc.archivo);
-          if (fs.existsSync(filePath)) {
-            const ext = path.extname(doc.archivo);
-            archive.file(filePath, { name: `${folderName}/${docType}${ext}` });
-          }
-        }
+    for (const { folderName, tituloPdf, cedulaPdf, otrosArchivos, resumen } of entradas) {
+      if (tituloPdf) archive.append(tituloPdf, { name: `${folderName}/titulo.pdf` });
+      if (cedulaPdf) archive.append(cedulaPdf, { name: `${folderName}/cedula.pdf` });
+      for (const { filePath, archiveName } of otrosArchivos) {
+        archive.file(filePath, { name: archiveName });
       }
-
-      // Resumen de texto por carpeta de estudiante
-      const nombreCompleto = `${est.nombre} ${est.primerApellido} ${est.segundoApellido || ''}`.trim();
-      const resumen = [
-        `EXPEDIENTE COMPLETO — ${new Date().toLocaleDateString('es-CR')}`,
-        ``,
-        `Cédula:         ${formatCedula(est.cedula)}`,
-        `Nombre:         ${nombreCompleto}`,
-        `Tipo Matrícula: ${est.tipoMatricula}`,
-        `Estado Avatar:  ${est.estadoAvatar}`,
-        `Correo:         ${est.correoElectronico || '—'}`,
-        ``,
-        `DOCUMENTOS:`,
-        `  Título:         ${est.documentos.titulo.estado}${est.documentos.titulo.archivo ? ' (archivo adjunto)' : ' (sin archivo digital)'}`,
-        `  Cédula Frente:  ${est.documentos.cedulaFrente.estado}${est.documentos.cedulaFrente.archivo ? ' (archivo adjunto)' : ' (sin archivo digital)'}`,
-        `  Cédula Reverso: ${est.documentos.cedulaReverso.estado}${est.documentos.cedulaReverso.archivo ? ' (archivo adjunto)' : ' (sin archivo digital)'}`,
-      ].join('\n');
       archive.append(resumen, { name: `${folderName}/datos.txt` });
     }
 

@@ -15,14 +15,29 @@ interface AuditEntry {
 }
 
 const ACCION_BADGE: Record<string, string> = {
-  EDITAR:     'bg-amber-50 text-amber-700 border-amber-200',
-  CREAR:      'bg-emerald-50 text-emerald-700 border-emerald-200',
-  ELIMINAR:   'bg-red-50 text-red-700 border-red-200',
-  IMPORTAR:   'bg-blue-50 text-blue-700 border-blue-200',
-  EXPORTAR:   'bg-violet-50 text-violet-700 border-violet-200',
-  LOGIN:      'bg-slate-50 text-slate-700 border-slate-200',
-  SUBIR_ARCHIVO: 'bg-cyan-50 text-cyan-700 border-cyan-200',
-  ACTUALIZAR_DOCUMENTOS: 'bg-amber-50 text-amber-700 border-amber-200',
+  EDITAR:           'bg-amber-50 text-amber-700 border-amber-200',
+  CREAR:            'bg-emerald-50 text-emerald-700 border-emerald-200',
+  ELIMINAR:         'bg-red-50 text-red-700 border-red-200',
+  ELIMINAR_ARCHIVO: 'bg-red-50 text-red-600 border-red-200',
+  IMPORTAR:         'bg-blue-50 text-blue-700 border-blue-200',
+  EXPORTAR:         'bg-violet-50 text-violet-700 border-violet-200',
+  LOGIN:            'bg-slate-50 text-slate-700 border-slate-200',
+  LOGOUT:           'bg-slate-50 text-slate-500 border-slate-200',
+  SUBIR_ARCHIVO:    'bg-cyan-50 text-cyan-700 border-cyan-200',
+  NOTIFICAR:        'bg-purple-50 text-purple-700 border-purple-200',
+};
+
+const ACCION_LABEL: Record<string, string> = {
+  EDITAR:           'Editar',
+  CREAR:            'Crear',
+  ELIMINAR:         'Eliminar',
+  ELIMINAR_ARCHIVO: 'Elim. archivo',
+  IMPORTAR:         'Importar',
+  EXPORTAR:         'Exportar',
+  LOGIN:            'Login',
+  LOGOUT:           'Logout',
+  SUBIR_ARCHIVO:    'Subir archivo',
+  NOTIFICAR:        'Notificar',
 };
 
 function formatDate(iso: string) {
@@ -145,13 +160,15 @@ export default function AuditLog() {
             >
               <option value="">Todas</option>
               <option value="LOGIN">Login</option>
+              <option value="LOGOUT">Logout</option>
               <option value="EDITAR">Editar</option>
               <option value="CREAR">Crear</option>
               <option value="ELIMINAR">Eliminar</option>
               <option value="IMPORTAR">Importar</option>
               <option value="EXPORTAR">Exportar</option>
               <option value="SUBIR_ARCHIVO">Subir archivo</option>
-              <option value="ACTUALIZAR_DOCUMENTOS">Act. documentos</option>
+              <option value="ELIMINAR_ARCHIVO">Eliminar archivo</option>
+              <option value="NOTIFICAR">Notificar</option>
             </select>
           </div>
           <div className="space-y-1 flex-1 min-w-[140px]">
@@ -202,14 +219,14 @@ export default function AuditLog() {
                     <span className={`inline-block px-2 py-0.5 rounded-full text-[11px] font-semibold border ${
                       ACCION_BADGE[log.accion] ?? 'bg-slate-50 text-slate-600 border-slate-200'
                     }`}>
-                      {log.accion}
+                      {ACCION_LABEL[log.accion] ?? log.accion}
                     </span>
                   </td>
                   <td className="px-5 py-3 text-slate-600 text-xs">
                     {log.entidad}
                     {log.entidadId && <span className="text-slate-400 ml-1">({formatEntidadId(log.entidad, log.entidadId)})</span>}
                   </td>
-                  <td className="px-5 py-3 text-slate-500 text-xs max-w-[300px] truncate">{log.detalle || '—'}</td>
+                  <td className="px-5 py-3 text-slate-500 text-xs max-w-[400px] truncate" title={log.detalle || ''}>{log.detalle || '—'}</td>
                 </tr>
               ))}
             </tbody>
