@@ -10,6 +10,7 @@ router.get('/', async (req: Request, res: Response) => {
   try {
     const {
       estado,
+      estadoPagoFiltro,
       tipoMatricula,
       carrera,
       buscar,
@@ -29,12 +30,34 @@ router.get('/', async (req: Request, res: Response) => {
     // Filtro Aspirantes / Matriculados
     if (req.query.matriculado === 'true') filter.matriculado = true;
     else if (req.query.matriculado === 'false') filter.matriculado = false;
+    const andFilters: any[] = [];
+
     if (carrera) {
-      filter.$or = [
+      andFilters.push({
+        $or: [
         { codigoCarrera: carrera },
         { codigoCarreraAvatar: carrera },
         { codigoCarreraManual: carrera },
-      ];
+        ],
+      });
+    }
+
+    // Filtro por estado de pago consolidado
+    if (estadoPagoFiltro === 'PENDIENTE') {
+      andFilters.push({
+        estadoPago: { $regex: /^(PEN|PENDIENTE)$/i },
+      });
+    } else if (estadoPagoFiltro === 'TRAMITADO') {
+      andFilters.push({
+        estadoPago: { $regex: /^(TRA|TRAMITADO|PAG|PAGADO)$/i },
+      });
+    } else if (estadoPagoFiltro === 'NULO') {
+      andFilters.push({
+        $or: [
+          { estadoPago: { $in: ['', null] } },
+          { estadoPago: { $regex: /^(ANU|ANULADO|NUL|NULO)$/i } },
+        ],
+      });
     }
 
     // Filtrar por documento faltante específico
@@ -52,6 +75,10 @@ router.get('/', async (req: Request, res: Response) => {
     // Búsqueda por cédula — solo prefijo (debe empezar con el valor buscado)
     if (buscar) {
       filter.cedula = new RegExp('^' + String(buscar).replace(/\D/g, ''), 'i');
+    }
+
+    if (andFilters.length > 0) {
+      filter.$and = andFilters;
     }
 
     const pageNum = Math.max(1, parseInt(String(page)));
@@ -135,9 +162,15 @@ router.put('/:cedula', async (req: Request, res: Response) => {
     const before = await Student.findOne({ cedula: req.params.cedula });
     if (!before) return res.status(404).json({ error: 'Estudiante no encontrado' });
 
+    const allowedFields = ['estadoAvatar', 'observaciones', 'codigoCarreraManual'] as const;
+    const safeUpdate: Record<string, any> = {};
+    for (const field of allowedFields) {
+      if (field in req.body) safeUpdate[field] = req.body[field];
+    }
+
     const student = await Student.findOneAndUpdate(
       { cedula: req.params.cedula },
-      { $set: req.body },
+      { $set: safeUpdate },
       { new: true, runValidators: true }
     );
 
@@ -158,7 +191,7 @@ router.put('/:cedula', async (req: Request, res: Response) => {
       await student.save();
     }
 
-    const CAMPOS_AUDITABLES = ['estadoAvatar', 'observaciones', 'codigoCarreraManual', 'sexo'] as const;
+    const CAMPOS_AUDITABLES = ['estadoAvatar', 'observaciones', 'codigoCarreraManual'] as const;
     const cambios: Record<string, { antes: any; despues: any }> = {};
     for (const campo of CAMPOS_AUDITABLES) {
       if (campo in req.body && String((before as any)[campo] ?? '') !== String(req.body[campo] ?? '')) {

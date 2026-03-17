@@ -48,7 +48,6 @@ export default function StudentEditModal({ student, onClose, onSaved }: Props) {
     estadoAvatar: student.estadoAvatar,
     observaciones: student.observaciones || '',
     codigoCarreraManual: student.codigoCarreraManual || student.codigoCarrera || student.codigoCarreraAvatar || '',
-    sexo: (student.sexo || '') as '' | 'M' | 'F',
   });
 
   const [docs, setDocs] = useState(
@@ -107,6 +106,10 @@ export default function StudentEditModal({ student, onClose, onSaved }: Props) {
       await deleteDocument(student.cedula, tipoDoc);
       addToast('Archivo eliminado', 'success');
       setUploadedFiles(prev => ({ ...prev, [tipoDoc]: null }));
+      setDocs(prev => ({
+        ...prev,
+        [tipoDoc]: { ...prev[tipoDoc], estado: 'NO_REVISADO', observacion: '' },
+      }));
     } catch {
       addToast('Error al eliminar archivo', 'error');
     } finally {
@@ -228,9 +231,9 @@ export default function StudentEditModal({ student, onClose, onSaved }: Props) {
               <div>
                 <label className="text-xs font-medium text-utn-blue/70 mb-1 block">Sexo</label>
                 <select
-                  value={form.sexo}
-                  onChange={e => setForm(f => ({ ...f, sexo: e.target.value as any }))}
-                  className="w-full px-3 py-2.5 bg-slate-50 rounded-xl text-sm border border-slate-200 focus:border-utn-blue focus:ring-2 focus:ring-utn-blue/20 outline-none"
+                  value={student.sexo || ''}
+                  disabled
+                  className="w-full px-3 py-2.5 bg-slate-100 rounded-xl text-sm border border-slate-200 text-slate-500 cursor-not-allowed"
                 >
                   <option value="">— Sin especificar —</option>
                   <option value="M">Masculino</option>
