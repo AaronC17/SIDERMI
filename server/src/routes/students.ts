@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import Student from '../models/Student';
 import { enviarNotificacionDocumentos, enviarBienvenida } from '../services/emailService';
 import { registrarAuditoria, auditFromReq } from '../services/auditService';
+import { requireRole } from '../middleware/auth';
 
 const router = Router();
 
@@ -157,7 +158,7 @@ router.get('/:cedula', async (req: Request, res: Response) => {
 });
 
 // PUT /api/students/:cedula - Actualizar datos del estudiante (editar manual)
-router.put('/:cedula', async (req: Request, res: Response) => {
+router.put('/:cedula', requireRole('Administrador', 'Registro'), async (req: Request, res: Response) => {
   try {
     const before = await Student.findOne({ cedula: req.params.cedula });
     if (!before) return res.status(404).json({ error: 'Estudiante no encontrado' });
@@ -219,7 +220,7 @@ router.put('/:cedula', async (req: Request, res: Response) => {
 });
 
 // PUT /api/students/:cedula/documentos - Actualizar estado de documentos
-router.put('/:cedula/documentos', async (req: Request, res: Response) => {
+router.put('/:cedula/documentos', requireRole('Administrador', 'Registro'), async (req: Request, res: Response) => {
   try {
     const { documentos } = req.body;
     const updateFields: any = {};
@@ -267,7 +268,7 @@ router.put('/:cedula/documentos', async (req: Request, res: Response) => {
 });
 
 // POST /api/students/:cedula/notificar - Enviar correo de notificación
-router.post('/:cedula/notificar', async (req: Request, res: Response) => {
+router.post('/:cedula/notificar', requireRole('Administrador', 'Registro'), async (req: Request, res: Response) => {
   try {
     const student = await Student.findOne({ cedula: req.params.cedula });
     if (!student) {
@@ -329,7 +330,7 @@ router.post('/:cedula/notificar', async (req: Request, res: Response) => {
 });
 
 // POST /api/students/notificar-masivo - Notificar a todos los pendientes
-router.post('/notificar-masivo', async (_req: Request, res: Response) => {
+router.post('/notificar-masivo', requireRole('Administrador', 'Registro'), async (_req: Request, res: Response) => {
   try {
     const pendientes = await Student.find({
       activo: true,
@@ -375,7 +376,7 @@ router.post('/notificar-masivo', async (_req: Request, res: Response) => {
 });
 
 // DELETE /api/students/:cedula - Desactivar (soft delete)
-router.delete('/:cedula', async (req: Request, res: Response) => {
+router.delete('/:cedula', requireRole('Administrador', 'Registro'), async (req: Request, res: Response) => {
   try {
     const student = await Student.findOneAndUpdate(
       { cedula: req.params.cedula },

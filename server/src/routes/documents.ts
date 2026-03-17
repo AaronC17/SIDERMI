@@ -4,6 +4,7 @@ import { uploadDocument } from '../middleware/upload';
 import Student from '../models/Student';
 import path from 'path';
 import { registrarAuditoria, auditFromReq } from '../services/auditService';
+import { requireRole } from '../middleware/auth';
 
 const router = Router();
 
@@ -17,7 +18,7 @@ const DOC_LABELS: Record<string, string> = {
 };
 
 // POST /api/documents/:cedula/upload/:tipoDoc - Subir documento de un estudiante
-router.post('/:cedula/upload/:tipoDoc', uploadDocument.single('archivo'), async (req: Request, res: Response) => {
+router.post('/:cedula/upload/:tipoDoc', requireRole('Administrador', 'Registro'), uploadDocument.single('archivo'), async (req: Request, res: Response) => {
   try {
     const { cedula, tipoDoc } = req.params;
     const validTypes = ['titulo', 'cedulaFrente', 'cedulaReverso', 'fotoCarnet', 'formularioMatricula', 'otros'];
@@ -91,7 +92,7 @@ router.get('/:cedula', async (req: Request, res: Response) => {
 });
 
 // DELETE /api/documents/:cedula/:tipoDoc - Quitar el archivo digital de un documento
-router.delete('/:cedula/:tipoDoc', async (req: Request, res: Response) => {
+router.delete('/:cedula/:tipoDoc', requireRole('Administrador', 'Registro'), async (req: Request, res: Response) => {
   try {
     const { cedula, tipoDoc } = req.params;
     const validTypes = ['titulo', 'cedulaFrente', 'cedulaReverso', 'fotoCarnet', 'formularioMatricula', 'otros'];

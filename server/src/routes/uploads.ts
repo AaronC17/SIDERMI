@@ -13,11 +13,12 @@ import {
 } from '../services/compareService';
 import UploadHistory from '../models/UploadHistory';
 import { registrarAuditoria, auditFromReq } from '../services/auditService';
+import { requireRole } from '../middleware/auth';
 
 const router = Router();
 
 // POST /api/uploads/aspirantes - Subir lista de Aspirantes (SIGU)
-router.post('/aspirantes', uploadExcel.single('archivo'), async (req: Request, res: Response) => {
+router.post('/aspirantes', requireRole('Administrador', 'Registro'), uploadExcel.single('archivo'), async (req: Request, res: Response) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: 'No se recibió archivo' });
@@ -68,7 +69,7 @@ router.post('/aspirantes', uploadExcel.single('archivo'), async (req: Request, r
 });
 
 // POST /api/uploads/corte - Subir corte de matriculados (SIGU/Avatar)
-router.post('/corte', uploadExcel.single('archivo'), async (req: Request, res: Response) => {
+router.post('/corte', requireRole('Administrador', 'Registro'), uploadExcel.single('archivo'), async (req: Request, res: Response) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: 'No se recibió archivo' });
@@ -133,7 +134,7 @@ router.post('/corte', uploadExcel.single('archivo'), async (req: Request, res: R
 });
 
 // POST /api/uploads/avatar - Subir datos específicos de Avatar
-router.post('/avatar', uploadExcel.single('archivo'), async (req: Request, res: Response) => {
+router.post('/avatar', requireRole('Administrador', 'Registro'), uploadExcel.single('archivo'), async (req: Request, res: Response) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: 'No se recibió archivo' });
@@ -173,7 +174,7 @@ router.post('/avatar', uploadExcel.single('archivo'), async (req: Request, res: 
 });
 
 // POST /api/uploads/auto - Auto-detectar y procesar todas las hojas del Excel maestro
-router.post('/auto', uploadExcel.single('archivo'), async (req: Request, res: Response) => {
+router.post('/auto', requireRole('Administrador', 'Registro'), uploadExcel.single('archivo'), async (req: Request, res: Response) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: 'No se recibió archivo' });
@@ -244,7 +245,7 @@ router.get('/historial', async (_req: Request, res: Response) => {
 });
 
 // DELETE /api/uploads/historial/:id - Eliminar entrada del historial
-router.delete('/historial/:id', async (req: Request, res: Response) => {
+router.delete('/historial/:id', requireRole('Administrador', 'Registro'), async (req: Request, res: Response) => {
   try {
     const deleted = await UploadHistory.findByIdAndDelete(req.params.id);
     if (!deleted) return res.status(404).json({ error: 'Registro no encontrado' });

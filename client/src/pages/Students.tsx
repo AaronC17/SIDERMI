@@ -27,6 +27,7 @@ import { getStudents, notificarEstudiante, getDashboard } from '../services/api'
 import type { Student, PaginatedResponse, DashboardStats } from '../types';
 import { useToast } from '../components/Toast';
 import StudentEditModal from './StudentEdit';
+import { useAuth } from '../context/AuthContext';
 
 /* ── Style maps ── */
 const ESTADO_STYLE: Record<string, { bg: string; text: string; dot: string; border: string }> = {
@@ -69,6 +70,8 @@ function EstadoBadge({ estado }: { estado: string }) {
 
 /* ══════════════════════════════════════════════ */
 export default function Students() {
+  const { user } = useAuth();
+  const canEdit = user?.rol !== 'Consulta';
   const [data, setData] = useState<PaginatedResponse | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -125,6 +128,7 @@ export default function Students() {
   };
 
   const handleNotify = async (ced: string) => {
+    if (!canEdit) return;
     try { await notificarEstudiante(ced); addToast('Notificación enviada', 'success'); fetchData(); }
     catch { addToast('Error al notificar', 'error'); }
   };
@@ -416,23 +420,25 @@ export default function Students() {
                           {formatCedula(s.cedula)}
                         </span>
                       </div>
-                      <div className="flex items-center gap-1 shrink-0">
-                        <button
-                          title="Editar estudiante"
-                          onClick={() => setEditStudent(s)}
-                          className="p-1.5 rounded-lg hover:bg-utn-blue/10 text-slate-400 hover:text-utn-blue transition-colors"
-                        >
-                          <Edit size={14} />
-                        </button>
-                        <button
-                          title="Notificar por correo"
-                          onClick={() => handleNotify(s.cedula)}
-                          disabled={!s.correoElectronico}
-                          className="p-1.5 rounded-lg hover:bg-amber-100 text-slate-400 hover:text-amber-600 disabled:opacity-20 disabled:cursor-not-allowed transition-colors"
-                        >
-                          <Mail size={14} />
-                        </button>
-                      </div>
+                      {canEdit && (
+                        <div className="flex items-center gap-1 shrink-0">
+                          <button
+                            title="Editar estudiante"
+                            onClick={() => setEditStudent(s)}
+                            className="p-1.5 rounded-lg hover:bg-utn-blue/10 text-slate-400 hover:text-utn-blue transition-colors"
+                          >
+                            <Edit size={14} />
+                          </button>
+                          <button
+                            title="Notificar por correo"
+                            onClick={() => handleNotify(s.cedula)}
+                            disabled={!s.correoElectronico}
+                            className="p-1.5 rounded-lg hover:bg-amber-100 text-slate-400 hover:text-amber-600 disabled:opacity-20 disabled:cursor-not-allowed transition-colors"
+                          >
+                            <Mail size={14} />
+                          </button>
+                        </div>
+                      )}
                     </div>
                     {/* Row 2: badges */}
                     <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
@@ -593,23 +599,25 @@ export default function Students() {
 
                         {/* Actions */}
                         <td className="px-4 py-2.5 align-middle">
-                          <div className="flex items-center gap-1">
-                            <button
-                              title="Editar estudiante"
-                              onClick={() => setEditStudent(s)}
-                              className="p-1.5 rounded-lg hover:bg-utn-blue/10 text-slate-400 hover:text-utn-blue transition-colors"
-                            >
-                              <Edit size={13} />
-                            </button>
-                            <button
-                              title="Notificar por correo"
-                              onClick={() => handleNotify(s.cedula)}
-                              disabled={!s.correoElectronico}
-                              className="p-1.5 rounded-lg hover:bg-amber-100 text-slate-400 hover:text-amber-600 disabled:opacity-20 disabled:cursor-not-allowed transition-colors"
-                            >
-                              <Mail size={13} />
-                            </button>
-                          </div>
+                          {canEdit && (
+                            <div className="flex items-center gap-1">
+                              <button
+                                title="Editar estudiante"
+                                onClick={() => setEditStudent(s)}
+                                className="p-1.5 rounded-lg hover:bg-utn-blue/10 text-slate-400 hover:text-utn-blue transition-colors"
+                              >
+                                <Edit size={13} />
+                              </button>
+                              <button
+                                title="Notificar por correo"
+                                onClick={() => handleNotify(s.cedula)}
+                                disabled={!s.correoElectronico}
+                                className="p-1.5 rounded-lg hover:bg-amber-100 text-slate-400 hover:text-amber-600 disabled:opacity-20 disabled:cursor-not-allowed transition-colors"
+                              >
+                                <Mail size={13} />
+                              </button>
+                            </div>
+                          )}
                         </td>
                       </tr>
                     );
@@ -652,7 +660,7 @@ export default function Students() {
       </div>
 
       {/* Edit modal */}
-      {editStudent && (
+      {canEdit && editStudent && (
         <StudentEditModal
           student={editStudent}
           onClose={() => setEditStudent(null)}
