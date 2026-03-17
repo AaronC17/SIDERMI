@@ -16,7 +16,8 @@ import AuditLog from './pages/AuditLog';
 const IS_DEMO = import.meta.env.VITE_DEMO_MODE === 'true';
 
 function ProtectedRoutes() {
-  const { isAuthenticated, loading } = useAuth();
+  const { isAuthenticated, loading, user } = useAuth();
+  const canWrite = user?.rol !== 'Consulta';
   if (loading)
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50">
@@ -29,7 +30,7 @@ function ProtectedRoutes() {
       <Route element={<Layout />}>
         <Route path="/" element={<Dashboard />} />
         <Route path="/estudiantes" element={IS_DEMO ? <DemoLocked /> : <Students />} />
-        <Route path="/cargar" element={IS_DEMO ? <UploadDemo /> : <Upload />} />
+        <Route path="/cargar" element={IS_DEMO ? <UploadDemo /> : (canWrite ? <Upload /> : <Navigate to="/estudiantes" replace />)} />
         <Route path="/estadisticas" element={IS_DEMO ? <DemoLocked /> : <Stats />} />
         <Route path="/plantillas" element={IS_DEMO ? <DemoLocked /> : <Templates />} />
         <Route path="/usuarios" element={IS_DEMO ? <DemoLocked /> : <Users />} />

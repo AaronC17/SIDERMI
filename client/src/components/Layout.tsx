@@ -21,7 +21,7 @@ const IS_DEMO = import.meta.env.VITE_DEMO_MODE === 'true';
 const NAV_ITEMS = [
   { to: '/', icon: LayoutDashboard, label: 'Dashboard', end: true, locked: false, adminOnly: false },
   { to: '/estudiantes', icon: Users, label: 'Estudiantes', locked: true, adminOnly: false },
-  { to: '/cargar', icon: Upload, label: 'Cargar Datos', locked: true, adminOnly: false },
+  { to: '/cargar', icon: Upload, label: 'Cargar Datos', locked: true, adminOnly: false, writeOnly: true },
   { to: '/plantillas', icon: FileDown, label: 'Plantillas Excel', locked: true, adminOnly: false },
   { to: '/estadisticas', icon: BarChart3, label: 'Estadísticas', locked: true, adminOnly: false },
   { to: '/usuarios', icon: UserCog, label: 'Usuarios', locked: false, adminOnly: true },
@@ -46,7 +46,11 @@ export default function Layout() {
   const location = useLocation();
   const pageTitle = PAGE_TITLES[location.pathname] || '';
 
-  const visibleNavItems = NAV_ITEMS.filter(item => !item.adminOnly || user?.rol === 'Administrador');
+  const visibleNavItems = NAV_ITEMS.filter(item => {
+    const isAdminAllowed = !item.adminOnly || user?.rol === 'Administrador';
+    const isWriteAllowed = !item.writeOnly || user?.rol !== 'Consulta';
+    return isAdminAllowed && isWriteAllowed;
+  });
 
   useEffect(() => {
     if (!notifOpen) return;
@@ -92,7 +96,7 @@ export default function Layout() {
           <p className="text-[8px] lg:text-[9px] uppercase tracking-[0.15em] text-white/45 font-bold px-3 mb-2">
             Menú principal
           </p>
-          {NAV_ITEMS.filter(item => !item.adminOnly || user?.rol === 'Administrador').map(item => {
+          {visibleNavItems.map(item => {
             const isNavLocked = IS_DEMO && item.locked;
             return (
               <NavLink
