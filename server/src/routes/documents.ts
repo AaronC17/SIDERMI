@@ -107,7 +107,14 @@ router.delete('/:cedula/:tipoDoc', async (req: Request, res: Response) => {
 
     await Student.updateOne(
       { cedula },
-      { $unset: { [`documentos.${tipoDoc}.archivo`]: '' } }
+      {
+        $unset: { [`documentos.${tipoDoc}.archivo`]: '' },
+        $set: {
+          [`documentos.${tipoDoc}.estado`]: 'NO_REVISADO',
+          [`documentos.${tipoDoc}.observacion`]: '',
+          [`documentos.${tipoDoc}.fechaRevision`]: new Date(),
+        },
+      }
     );
 
     // Borrar el archivo físico si existe
@@ -119,7 +126,7 @@ router.delete('/:cedula/:tipoDoc', async (req: Request, res: Response) => {
       } catch { /* ignorar error de fs */ }
     }
 
-    res.json({ success: true, message: 'Archivo eliminado' });
+    res.json({ success: true, message: 'Archivo eliminado y estado reiniciado a NO_REVISADO' });
 
     const { usuario, ip } = auditFromReq(req);
     registrarAuditoria({

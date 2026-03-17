@@ -5,12 +5,10 @@ import {
   UserCheck,
   UserX,
   CheckCircle,
-  Clock,
   FileText,
   Upload,
   Download,
   ArrowUpRight,
-  TrendingUp,
   BarChart3,
   CalendarDays,
 } from 'lucide-react';
@@ -71,10 +69,6 @@ export default function Dashboard() {
   };
 
   /* ── Helpers ── */
-  const pctMatriculados = stats.totalEstudiantes > 0
-    ? Math.round((stats.matriculados / stats.totalEstudiantes) * 100) : 0;
-  const pctAspirantes = 100 - pctMatriculados;
-
   return (
     <div className="space-y-3 fade-up">
       {/* ── Header ── */}
