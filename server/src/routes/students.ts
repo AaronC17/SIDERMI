@@ -6,6 +6,8 @@ import { requireRole } from '../middleware/auth';
 
 const router = Router();
 
+const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
 /**
  * Filtra información sensible de documentos según el rol del usuario
  */
@@ -387,8 +389,13 @@ router.post('/:cedula/notificar', requireRole('Administrador', 'Registro'), asyn
 });
 
 // POST /api/students/notificar-masivo - Notificar a todos los pendientes
-router.post('/notificar-masivo', requireRole('Administrador', 'Registro'), async (_req: Request, res: Response) => {
+router.post('/notificar-masivo', requireRole('Administrador', 'Registro'), async (req: Request, res: Response) => {
   try {
+    const maxPorEjecucion = Number(process.env.EMAIL_MAX_PER_RUN || 300);
+    const blockSize = Number(process.env.EMAIL_BATCH_SIZE || 50);
+    const pauseMs = Number(process.env.EMAIL_BATCH_PAUSE_MS || 10 * 60 * 1000);
+    const delayEntreEnviosMs = Number(process.env.EMAIL_SEND_DELAY_MS || 1000);
+
     const pendientes = await Student.find({
       activo: true,
       correoElectronico: { $ne: '' },
@@ -400,10 +407,13 @@ router.post('/notificar-masivo', requireRole('Administrador', 'Registro'), async
       ]
     });
 
+    const objetivo = pendientes.slice(0, Math.max(0, maxPorEjecucion));
+
     let enviados = 0;
     let errores = 0;
+    let procesados = 0;
 
-    for (const student of pendientes) {
+    for (const student of objetivo) {
       const faltantes: string[] = [];
       if (student.documentos.titulo.estado !== 'COMPLETO') faltantes.push('Título');
       if (student.documentos.cedulaFrente.estado !== 'COMPLETO') faltantes.push('Cédula (frente)');
@@ -424,9 +434,36 @@ router.post('/notificar-masivo', requireRole('Administrador', 'Registro'), async
       } else {
         errores++;
       }
+
+      procesados++;
+
+      // Pausa corta entre correos para bajar riesgo de bloqueo
+      if (delayEntreEnviosMs > 0 && procesados < objetivo.length) {
+        await sleep(delayEntreEnviosMs);
+      }
+
+      // Pausa larga por bloques (ej. 50 cada 10-15 min)
+      if (blockSize > 0 && pauseMs > 0 && procesados % blockSize === 0 && procesados < objetivo.length) {
+        await sleep(pauseMs);
+      }
     }
 
-    res.json({ total: pendientes.length, enviados, errores });
+    const omitidosPorLimite = Math.max(0, pendientes.length - objetivo.length);
+
+    res.json({
+      totalPendientes: pendientes.length,
+      totalProcesados: objetivo.length,
+      omitidosPorLimite,
+      enviados,
+      errores,
+      configuracion: {
+        maxPorEjecucion,
+        blockSize,
+        pauseMs,
+        delayEntreEnviosMs,
+      },
+      solicitadoPor: req.user?.username || 'desconocido',
+    });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }

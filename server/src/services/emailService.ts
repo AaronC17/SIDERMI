@@ -3,15 +3,31 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
+const smtpHost = process.env.SMTP_HOST || 'smtp.office365.com';
+const smtpPort = Number(process.env.SMTP_PORT) || 587;
+const smtpUser = process.env.SMTP_USER;
+const smtpPass = process.env.SMTP_PASS;
+
 const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST || 'smtp.office365.com',
-  port: Number(process.env.SMTP_PORT) || 587,
+  host: smtpHost,
+  port: smtpPort,
   secure: false,
+  requireTLS: true,
+  pool: true,
+  maxConnections: Number(process.env.SMTP_MAX_CONNECTIONS || 2),
+  maxMessages: Number(process.env.SMTP_MAX_MESSAGES || 100),
+  connectionTimeout: Number(process.env.SMTP_CONNECTION_TIMEOUT_MS || 15000),
+  greetingTimeout: Number(process.env.SMTP_GREETING_TIMEOUT_MS || 15000),
+  socketTimeout: Number(process.env.SMTP_SOCKET_TIMEOUT_MS || 30000),
   auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
+    user: smtpUser,
+    pass: smtpPass,
   },
 });
+
+function emailConfigured(): boolean {
+  return Boolean(smtpUser && smtpPass);
+}
 
 export interface EmailData {
   to: string;
@@ -24,6 +40,11 @@ export interface EmailData {
  * Envía correo de notificación de documentos faltantes
  */
 export async function enviarNotificacionDocumentos(data: EmailData): Promise<boolean> {
+  if (!emailConfigured()) {
+    console.warn('SMTP no configurado: faltan SMTP_USER o SMTP_PASS.');
+    return false;
+  }
+
   const listaDocumentos = data.documentosFaltantes
     .map(d => `<li style="padding:4px 0;color:#cc0000;">❌ ${d}</li>`)
     .join('');
@@ -70,6 +91,11 @@ export async function enviarNotificacionDocumentos(data: EmailData): Promise<boo
  * Envía correo de bienvenida cuando el estudiante está completo
  */
 export async function enviarBienvenida(to: string, nombre: string): Promise<boolean> {
+  if (!emailConfigured()) {
+    console.warn('SMTP no configurado: faltan SMTP_USER o SMTP_PASS.');
+    return false;
+  }
+
   const html = `
     <div style="font-family:'Segoe UI',Arial,sans-serif;max-width:600px;margin:0 auto;">
       <div style="background-color:#1B3A5C;color:white;padding:20px;text-align:center;border-radius:8px 8px 0 0;">
@@ -99,6 +125,23 @@ export async function enviarBienvenida(to: string, nombre: string): Promise<bool
     return true;
   } catch (error) {
     console.error('Error enviando correo:', error);
+    return false;
+  }
+}
+
+/**
+ * Verifica conexión SMTP (útil para health checks o pruebas manuales).
+ */
+export async function verificarConexionEmail(): Promise<boolean> {
+  if (!emailConfigured()) {
+    return false;
+  }
+
+  try {
+    await transporter.verify();
+    return true;
+  } catch (error) {
+    console.error('No se pudo verificar conexión SMTP:', error);
     return false;
   }
 }
