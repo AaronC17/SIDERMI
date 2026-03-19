@@ -4,8 +4,12 @@ import UploadHistory from '../models/UploadHistory';
 import path from 'path';
 import { generarZipCompletos, getEstudiantesPendientes } from '../services/zipService';
 import { registrarAuditoria, auditFromReq } from '../services/auditService';
+import { requireRole } from '../middleware/auth';
 
 const router = Router();
+
+// Tipos de documentos válidos
+const VALID_DOC_TYPES = ['titulo', 'cedulaFrente', 'cedulaReverso', 'fotoCarnet', 'formularioMatricula', 'otros'];
 
 // GET /api/stats/dashboard - Estadísticas generales del dashboard
 router.get('/dashboard', async (_req: Request, res: Response) => {
@@ -171,6 +175,14 @@ router.get('/pendientes', async (_req: Request, res: Response) => {
 router.get('/por-documento/:tipo', async (req: Request, res: Response) => {
   try {
     const { tipo } = req.params;
+
+    // Validar tipo de documento
+    if (!VALID_DOC_TYPES.includes(tipo)) {
+      return res.status(400).json({
+        error: `Tipo de documento inválido. Use: ${VALID_DOC_TYPES.join(', ')}`,
+      });
+    }
+
     const docField = `documentos.${tipo}.estado`;
 
     const faltantes = await Student.find({
@@ -197,7 +209,8 @@ router.get('/por-documento/:tipo', async (req: Request, res: Response) => {
 });
 
 // POST /api/stats/descargar-completos - Generar y descargar ZIP de expedientes completos
-router.post('/descargar-completos', async (req: Request, res: Response) => {
+// Requiere rol Administrador o Registro
+router.post('/descargar-completos', requireRole('Administrador', 'Registro'), async (req: Request, res: Response) => {
   try {
     const outputDir = path.join(__dirname, '../../downloads');
     const result = await generarZipCompletos(outputDir);

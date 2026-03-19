@@ -7,6 +7,7 @@ import {
 import { getDashboard, getPorDocumento, descargarCompletos } from '../services/api';
 import type { DashboardStats } from '../types';
 import { useToast } from '../components/Toast';
+import DownloadZipModal from '../components/DownloadZipModal';
 
 const PAGE_SIZE = 10;
 
@@ -195,6 +196,7 @@ export default function Stats() {
   const [docLoading, setDocLoading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [docPage, setDocPage] = useState(1);
+  const [showZipModal, setShowZipModal] = useState(false);
   const { addToast } = useToast();
 
   useEffect(() => {
@@ -277,7 +279,7 @@ export default function Stats() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <p className="text-sm text-slate-500">Análisis de avance del proceso de matrícula</p>
         <button
-          onClick={handleDownloadZip}
+          onClick={() => setShowZipModal(true)}
           className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-utn-blue text-white rounded-xl text-xs font-semibold hover:bg-utn-blue-light transition-colors shadow-sm shadow-utn-blue/20"
         >
           <Download size={14} /> Descargar expedientes ZIP
@@ -593,6 +595,14 @@ export default function Stats() {
             <Pagination page={docPage} total={docResults.length} onChange={setDocPage} />
           </div>
         </div>
+      )}
+
+      {/* Modal de confirmación para descarga ZIP */}
+      {showZipModal && (
+        <DownloadZipModal
+          onClose={() => setShowZipModal(false)}
+          onConfirm={handleDownloadZip}
+        />
       )}
     </div>
   );
