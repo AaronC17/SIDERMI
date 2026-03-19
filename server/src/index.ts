@@ -19,6 +19,7 @@ dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 4000;
+const isProduction = process.env.NODE_ENV === 'production';
 
 // ========== SEGURIDAD ==========
 
@@ -29,17 +30,41 @@ app.use(securityHeaders);
 app.disable('x-powered-by');
 
 // CORS configurado de forma más segura
-const allowedOrigins = process.env.ALLOWED_ORIGINS
+const allowedOrigins = (process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(',')
-  : ['http://localhost:5173', 'http://localhost:4000'];
+  : [
+      'http://localhost:5173',
+      'http://localhost:4000',
+      'http://127.0.0.1:5173',
+      'http://127.0.0.1:4000',
+    ]
+).map(origin => origin.trim()).filter(Boolean);
+
+const devOriginPatterns = [
+  /^https?:\/\/localhost(:\d+)?$/i,
+  /^https?:\/\/127\.0\.0\.1(:\d+)?$/i,
+  /^https?:\/\/10(?:\.\d{1,3}){3}(:\d+)?$/i,
+  /^https?:\/\/192\.168(?:\.\d{1,3}){2}(:\d+)?$/i,
+  /^https?:\/\/172\.(?:1[6-9]|2\d|3[0-1])(?:\.\d{1,3}){2}(:\d+)?$/i,
+];
+
+function isAllowedOrigin(origin: string): boolean {
+  if (allowedOrigins.includes(origin)) {
+    return true;
+  }
+  if (!isProduction && devOriginPatterns.some(pattern => pattern.test(origin))) {
+    return true;
+  }
+  return false;
+}
 
 app.use(cors({
   origin: (origin, callback) => {
     // Permitir requests sin origin (Postman, curl, etc.) solo en desarrollo
-    if (!origin && process.env.NODE_ENV !== 'production') {
+    if (!origin && !isProduction) {
       return callback(null, true);
     }
-    if (!origin || allowedOrigins.includes(origin)) {
+    if (origin && isAllowedOrigin(origin)) {
       callback(null, true);
     } else {
       callback(new Error('No permitido por CORS'));

@@ -1,6 +1,6 @@
-import { useState } from 'react';
-import { X, Save, Upload as UploadIcon, FileText, User, Mail, Phone, ClipboardList, CheckCircle, Trash2, Loader2 } from 'lucide-react';
-import { updateStudent, updateDocumentos, uploadDocument, deleteDocument } from '../services/api';
+import { useEffect, useState } from 'react';
+import { X, Save, Upload as UploadIcon, FileText, User, Mail, Phone, ClipboardList, CheckCircle, Trash2, Loader2, Eye } from 'lucide-react';
+import { updateStudent, updateDocumentos, uploadDocument, deleteDocument, getDocumentBlob } from '../services/api';
 import type { Student } from '../types';
 import { useToast } from '../components/Toast';
 
@@ -62,12 +62,35 @@ export default function StudentEditModal({ student, onClose, onSaved }: Props) {
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [showPreview, setShowPreview] = useState(false);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewError, setPreviewError] = useState<string | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewDocLabel, setPreviewDocLabel] = useState('');
   const [uploadedFiles, setUploadedFiles] = useState<Record<string, string | null>>(
     Object.fromEntries(
       Object.entries(student.documentos || {}).map(([k, v]) => [k, v?.archivo ?? null])
     )
   );
   const { addToast } = useToast();
+
+  useEffect(() => {
+    return () => {
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+      }
+    };
+  }, [previewUrl]);
+
+  const closePreview = () => {
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+    }
+    setPreviewUrl(null);
+    setPreviewError(null);
+    setPreviewDocLabel('');
+    setShowPreview(false);
+  };
 
   const handleSave = async () => {
     setSaving(true);
@@ -114,6 +137,35 @@ export default function StudentEditModal({ student, onClose, onSaved }: Props) {
       addToast('Error al eliminar archivo', 'error');
     } finally {
       setDeleting(null);
+    }
+  };
+
+  const handlePreviewFile = async (tipoDoc: string) => {
+    setShowPreview(true);
+    setPreviewLoading(true);
+    setPreviewError(null);
+    setPreviewDocLabel(DOC_LABELS[tipoDoc] || tipoDoc);
+
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+      setPreviewUrl(null);
+    }
+
+    try {
+      const { blob, contentType } = await getDocumentBlob(student.cedula, tipoDoc);
+      const isImage = contentType.startsWith('image/');
+
+      if (!isImage) {
+        setPreviewError('Este archivo no es una imagen y no se puede previsualizar aquí.');
+        return;
+      }
+
+      const url = URL.createObjectURL(blob);
+      setPreviewUrl(url);
+    } catch {
+      setPreviewError('No se pudo cargar la vista previa del documento.');
+    } finally {
+      setPreviewLoading(false);
     }
   };
 
@@ -271,9 +323,14 @@ export default function StudentEditModal({ student, onClose, onSaved }: Props) {
                     </div>
                   ) : tieneArchivo ? (
                     <div className={`flex items-center gap-1.5 ${shrink ? 'shrink-0' : ''}`}>
-                      <div className="flex items-center justify-center w-[30px] h-[30px] rounded-lg text-emerald-600 bg-emerald-50 border-2 border-emerald-325 shadow-sm">
+                      <button
+                        type="button"
+                        onClick={() => handlePreviewFile(key)}
+                        className="flex items-center justify-center w-[30px] h-[30px] rounded-lg text-emerald-600 bg-emerald-50 border-2 border-emerald-325 shadow-sm hover:bg-emerald-100 hover:border-emerald-400 transition-all"
+                        title="Ver imagen subida"
+                      >
                         <CheckCircle size={14} />
-                      </div>
+                      </button>
                       <button
                         type="button"
                         onClick={() => handleDeleteFile(key)}
@@ -378,6 +435,62 @@ export default function StudentEditModal({ student, onClose, onSaved }: Props) {
           </button>
         </div>
       </div>
+
+      {showPreview && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4" onClick={closePreview}>
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+          <div
+            className="relative rounded-2xl w-full overflow-hidden flex flex-col border border-utn-blue/15 bg-white"
+            style={{ width: 'min(94vw, 600px)', height: 'min(78vh, 420px)' }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div
+              className="flex items-center justify-between px-5 py-3 border-b border-utn-blue/15"
+              style={{ background: 'linear-gradient(120deg, rgba(20,45,92,0.10) 0%, rgba(30,70,128,0.08) 100%)' }}
+            >
+              <div className="flex items-center gap-2 text-slate-700">
+                <div className="w-7 h-7 rounded-lg bg-utn-blue/10 border border-utn-blue/15 flex items-center justify-center text-utn-blue">
+                  <Eye size={14} />
+                </div>
+                <h4 className="font-semibold text-sm">Vista previa: {previewDocLabel}</h4>
+              </div>
+              <button
+                type="button"
+                onClick={closePreview}
+                className="p-2 rounded-lg hover:bg-utn-blue/10 text-slate-500 hover:text-utn-blue transition-colors"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <div
+              className="flex-1 p-4 overflow-auto flex items-center justify-center"
+              style={{ background: 'radial-gradient(circle at top, rgba(20,45,92,0.07) 0%, rgba(248,250,252,1) 58%)' }}
+            >
+              {previewLoading && (
+                <div className="flex flex-col items-center gap-2 text-slate-500">
+                  <Loader2 size={22} className="animate-spin" />
+                  <span className="text-sm">Cargando vista previa…</span>
+                </div>
+              )}
+
+              {!previewLoading && previewError && (
+                <div className="text-center text-slate-600">
+                  <p className="text-sm font-medium">{previewError}</p>
+                </div>
+              )}
+
+              {!previewLoading && !previewError && previewUrl && (
+                <img
+                  src={previewUrl}
+                  alt={`Vista previa de ${previewDocLabel}`}
+                  className="max-w-full max-h-[70vh] object-contain rounded-lg shadow"
+                />
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

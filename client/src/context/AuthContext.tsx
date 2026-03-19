@@ -47,7 +47,7 @@ const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
-  const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const refreshIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Función para verificar sesión con reintentos
   const verifySession = useCallback(async (retries = MAX_RETRIES): Promise<AuthUser | null> => {

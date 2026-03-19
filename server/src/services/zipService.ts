@@ -329,8 +329,8 @@ export async function generarZipCompletos(outputPath: string): Promise<{
     archive.on('error', reject);
     archive.pipe(output);
 
-    // Excel va primero (prefijo "!" lo ordena antes que las carpetas)
-    archive.append(excelBuffer, { name: '!Reporte_Expedientes_Completos.xlsx' });
+    // Excel va primero y con prefijo numérico para aparecer arriba en orden alfabético
+    archive.append(excelBuffer, { name: '00_Reporte_Expedientes_Completos.xlsx' });
 
     for (const { folderName, tituloPdf, cedulaPdf, otrosArchivos, resumen } of entradas) {
       if (tituloPdf) archive.append(tituloPdf, { name: `${folderName}/titulo.pdf` });

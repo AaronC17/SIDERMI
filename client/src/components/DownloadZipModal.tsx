@@ -1,5 +1,5 @@
 import { X, Download, AlertTriangle, Clock } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { getDashboard } from '../services/api';
 import type { DashboardStats } from '../types';
 
@@ -7,6 +7,14 @@ interface Props {
   onClose: () => void;
   onConfirm: () => void;
 }
+
+type EstadoColor = 'amber' | 'emerald' | 'red';
+
+const COLOR_CLASSES: Record<EstadoColor, { bg: string; border: string; text: string; icon: string }> = {
+  amber: { bg: 'bg-amber-50', border: 'border-amber-200', text: 'text-amber-700', icon: 'text-amber-500' },
+  emerald: { bg: 'bg-emerald-50', border: 'border-emerald-200', text: 'text-emerald-700', icon: 'text-emerald-500' },
+  red: { bg: 'bg-red-50', border: 'border-red-200', text: 'text-red-700', icon: 'text-red-500' },
+};
 
 export default function DownloadZipModal({ onClose, onConfirm }: Props) {
   const [checking, setChecking] = useState(false);
@@ -27,13 +35,15 @@ export default function DownloadZipModal({ onClose, onConfirm }: Props) {
   };
 
   // Auto-check al montar
-  if (!checked && !checking) {
-    checkUpdates();
-  }
+  useEffect(() => {
+    if (!checked && !checking) {
+      checkUpdates();
+    }
+  }, [checked, checking]);
 
   const getEstadoActualizacion = (): {
     mensaje: string;
-    color: string;
+    color: EstadoColor;
     icon: typeof Clock;
   } => {
     if (!stats) {
@@ -47,7 +57,6 @@ export default function DownloadZipModal({ onClose, onConfirm }: Props) {
     // Verificar si hay estudiantes con documentos pendientes
     const totalCompletos = stats.documentos?.todosCompletos || 0;
     const totalIncompletos = stats.documentos?.todosIncompletos || 0;
-    const totalEstudiantes = stats.totalEstudiantes || 0;
 
     if (totalCompletos === 0) {
       return {
@@ -73,20 +82,28 @@ export default function DownloadZipModal({ onClose, onConfirm }: Props) {
   };
 
   const estado = getEstadoActualizacion();
-  const colorClasses = {
-    amber: { bg: 'bg-amber-50', border: 'border-amber-200', text: 'text-amber-700', icon: 'text-amber-500' },
-    emerald: { bg: 'bg-emerald-50', border: 'border-emerald-200', text: 'text-emerald-700', icon: 'text-emerald-500' },
-    red: { bg: 'bg-red-50', border: 'border-red-200', text: 'text-red-700', icon: 'text-red-500' },
-  }[estado.color];
+  const colorClasses = COLOR_CLASSES[estado.color];
 
   const canDownload = estado.color !== 'red';
 
+  const confirmacionTexto = (() => {
+    if (estado.color === 'emerald') {
+      return 'Todos los expedientes están completos. ¿Está seguro de descargar el ZIP ahora?';
+    }
+
+    if (estado.color === 'amber') {
+      return 'Hay expedientes con documentos pendientes. ¿Está seguro de descargar el ZIP solo con expedientes completos?';
+    }
+
+    return 'En este momento no hay expedientes completos para incluir en el ZIP.';
+  })();
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
+    <div className="modal-overlay" onClick={onClose}>
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
 
       <div
-        className="relative bg-white rounded-2xl max-w-md w-full overflow-hidden"
+        className="modal-shell-compact"
         style={{ boxShadow: '0 25px 60px rgba(20,45,92,0.22), 0 8px 24px rgba(20,45,92,0.12)' }}
         onClick={e => e.stopPropagation()}
       >
@@ -104,7 +121,7 @@ export default function DownloadZipModal({ onClose, onConfirm }: Props) {
         </div>
 
         {/* Body */}
-        <div className="px-6 py-5 space-y-4">
+        <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
           <p className="text-sm text-slate-600">
             Estás a punto de generar y descargar un archivo ZIP con los expedientes completos de estudiantes.
           </p>
@@ -142,6 +159,12 @@ export default function DownloadZipModal({ onClose, onConfirm }: Props) {
               <li>Archivos organizados por cédula y nombre</li>
             </ul>
           </div>
+
+          <div className={`p-3 rounded-xl border ${colorClasses.bg} ${colorClasses.border}`}>
+            <p className={`text-xs font-medium ${colorClasses.text}`}>
+              {confirmacionTexto}
+            </p>
+          </div>
         </div>
 
         {/* Footer */}
@@ -161,7 +184,7 @@ export default function DownloadZipModal({ onClose, onConfirm }: Props) {
             className="inline-flex items-center gap-2 px-5 py-2.5 bg-utn-blue text-white rounded-xl text-sm font-medium hover:bg-utn-blue-light disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-md shadow-utn-blue/20"
           >
             <Download size={16} />
-            {checking ? 'Verificando...' : 'Descargar ZIP'}
+            {checking ? 'Verificando...' : estado.color === 'amber' ? 'Sí, descargar solo completos' : 'Descargar ZIP'}
           </button>
         </div>
       </div>
