@@ -14,11 +14,12 @@ import {
 import UploadHistory from '../models/UploadHistory';
 import { registrarAuditoria, auditFromReq } from '../services/auditService';
 import { requireRole } from '../middleware/auth';
+import { bulkUploadRateLimiter } from '../middleware/security';
 
 const router = Router();
 
 // POST /api/uploads/aspirantes - Subir lista de Aspirantes (SIGU)
-router.post('/aspirantes', requireRole('Administrador', 'Registro'), uploadExcel.single('archivo'), async (req: Request, res: Response) => {
+router.post('/aspirantes', bulkUploadRateLimiter, requireRole('Administrador', 'Registro'), uploadExcel.single('archivo'), async (req: Request, res: Response) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: 'No se recibió archivo' });
@@ -69,7 +70,7 @@ router.post('/aspirantes', requireRole('Administrador', 'Registro'), uploadExcel
 });
 
 // POST /api/uploads/corte - Subir corte de matriculados (SIGU/Avatar)
-router.post('/corte', requireRole('Administrador', 'Registro'), uploadExcel.single('archivo'), async (req: Request, res: Response) => {
+router.post('/corte', bulkUploadRateLimiter, requireRole('Administrador', 'Registro'), uploadExcel.single('archivo'), async (req: Request, res: Response) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: 'No se recibió archivo' });
@@ -134,7 +135,7 @@ router.post('/corte', requireRole('Administrador', 'Registro'), uploadExcel.sing
 });
 
 // POST /api/uploads/avatar - Subir datos específicos de Avatar
-router.post('/avatar', requireRole('Administrador', 'Registro'), uploadExcel.single('archivo'), async (req: Request, res: Response) => {
+router.post('/avatar', bulkUploadRateLimiter, requireRole('Administrador', 'Registro'), uploadExcel.single('archivo'), async (req: Request, res: Response) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: 'No se recibió archivo' });
@@ -174,7 +175,7 @@ router.post('/avatar', requireRole('Administrador', 'Registro'), uploadExcel.sin
 });
 
 // POST /api/uploads/auto - Auto-detectar y procesar todas las hojas del Excel maestro
-router.post('/auto', requireRole('Administrador', 'Registro'), uploadExcel.single('archivo'), async (req: Request, res: Response) => {
+router.post('/auto', bulkUploadRateLimiter, requireRole('Administrador', 'Registro'), uploadExcel.single('archivo'), async (req: Request, res: Response) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: 'No se recibió archivo' });

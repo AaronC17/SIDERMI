@@ -6,9 +6,46 @@ import { requireRole } from '../middleware/auth';
 
 const router = Router();
 
+/**
+ * Filtra información sensible de documentos según el rol del usuario
+ */
+function filtrarDocumentosPorRol(documentos: any, rol: string) {
+  if (rol === 'Consulta') {
+    // Para rol Consulta, solo mostrar estado y observación, NO la ruta del archivo
+    const filtrados: any = {};
+    for (const [tipo, doc] of Object.entries(documentos || {})) {
+      const d = doc as any;
+      filtrados[tipo] = {
+        estado: d?.estado || 'NO_REVISADO',
+        observacion: d?.observacion || '',
+        fechaRevision: d?.fechaRevision,
+        tieneArchivo: !!d?.archivo, // Solo indicar si tiene archivo, no la ruta
+      };
+    }
+    return filtrados;
+  }
+  // Para Admin y Registro, devolver todo
+  return documentos;
+}
+
+/**
+ * Filtra un estudiante completo según el rol del usuario
+ */
+function filtrarEstudiantePorRol(student: any, rol: string) {
+  const obj = student.toObject ? student.toObject() : { ...student };
+
+  // Filtrar documentos
+  if (obj.documentos) {
+    obj.documentos = filtrarDocumentosPorRol(obj.documentos, rol);
+  }
+
+  return obj;
+}
+
 // GET /api/students - Listar todos los estudiantes (con filtros)
 router.get('/', async (req: Request, res: Response) => {
   try {
+    const userRole = req.user?.rol || 'Consulta';
     const {
       estado,
       estadoPagoFiltro,
@@ -75,7 +112,11 @@ router.get('/', async (req: Request, res: Response) => {
 
     // Búsqueda por cédula — solo prefijo (debe empezar con el valor buscado)
     if (buscar) {
-      filter.cedula = new RegExp('^' + String(buscar).replace(/\D/g, ''), 'i');
+      // Sanitizar entrada: solo permitir dígitos
+      const sanitized = String(buscar).replace(/\D/g, '');
+      if (sanitized.length > 0) {
+        filter.cedula = new RegExp('^' + sanitized, 'i');
+      }
     }
 
     if (andFilters.length > 0) {
@@ -116,8 +157,12 @@ router.get('/', async (req: Request, res: Response) => {
         Student.aggregate(pipeline),
         Student.countDocuments(filter),
       ]);
+
+      // Filtrar documentos según rol
+      const filteredStudents = students.map(s => filtrarEstudiantePorRol(s, userRole));
+
       return res.json({
-        students,
+        students: filteredStudents,
         pagination: { total, page: pageNum, pages: Math.ceil(total / limitNum), limit: limitNum },
       });
     }
@@ -130,8 +175,11 @@ router.get('/', async (req: Request, res: Response) => {
       Student.countDocuments(filter),
     ]);
 
+    // Filtrar documentos según rol
+    const filteredStudents = students.map(s => filtrarEstudiantePorRol(s, userRole));
+
     res.json({
-      students,
+      students: filteredStudents,
       pagination: {
         total,
         page: pageNum,
@@ -147,11 +195,20 @@ router.get('/', async (req: Request, res: Response) => {
 // GET /api/students/:cedula - Obtener un estudiante por cédula
 router.get('/:cedula', async (req: Request, res: Response) => {
   try {
+    const userRole = req.user?.rol || 'Consulta';
+
+    // Validar cédula: solo dígitos y guiones
+    if (!/^[\d-]+$/.test(req.params.cedula)) {
+      return res.status(400).json({ error: 'Cédula inválida' });
+    }
+
     const student = await Student.findOne({ cedula: req.params.cedula });
     if (!student) {
       return res.status(404).json({ error: 'Estudiante no encontrado' });
     }
-    res.json(student);
+
+    // Filtrar según rol
+    res.json(filtrarEstudiantePorRol(student, userRole));
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }

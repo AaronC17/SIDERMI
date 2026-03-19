@@ -4,62 +4,169 @@ import fs from 'fs';
 import PDFDocument from 'pdfkit';
 import path from 'path';
 import Student, { IStudent } from '../models/Student';
+import { decryptFile, isEncrypted } from './cryptoService';
 
 const IMAGE_EXTS = new Set(['.jpg', '.jpeg', '.png', '.webp']);
 
 /**
+ * Lee un archivo, descifrándolo si está cifrado.
+ * Retorna null si el archivo no existe.
+ */
+function leerArchivoSeguro(filePath: string): Buffer | null {
+  if (!fs.existsSync(filePath)) return null;
+
+  // Verificar path traversal
+  const docsDir = path.resolve(path.join(__dirname, '../../documents'));
+  const resolvedPath = path.resolve(filePath);
+  if (!resolvedPath.startsWith(docsDir) && !resolvedPath.startsWith(path.resolve(path.join(__dirname, '../../')))) {
+    console.warn(`Intento de acceso a ruta no autorizada: ${filePath}`);
+    return null;
+  }
+
+  try {
+    if (isEncrypted(filePath)) {
+      return decryptFile(filePath);
+    }
+    return fs.readFileSync(filePath);
+  } catch (err) {
+    console.error(`Error leyendo archivo ${filePath}:`, err);
+    return null;
+  }
+}
+
+/**
+ * Obtiene la extensión original de un archivo (quitando .enc si existe)
+ */
+function getOriginalExt(filePath: string): string {
+  let ext = path.extname(filePath).toLowerCase();
+  if (ext === '.enc') {
+    // El nombre tiene formato: nombre.ext.enc
+    const baseName = path.basename(filePath, '.enc');
+    ext = path.extname(baseName).toLowerCase();
+  }
+  return ext;
+}
+
+/**
  * Convierte un archivo de imagen a un buffer PDF de una página (A4).
  * Si el archivo ya es PDF lo devuelve tal cual.
+ * Soporta archivos cifrados.
  */
-async function imagenAPdf(imagePath: string, titulo?: string): Promise<Buffer> {
-  const ext = path.extname(imagePath).toLowerCase();
-  if (ext === '.pdf') return fs.readFileSync(imagePath);
+async function imagenAPdf(imagePath: string, titulo?: string): Promise<Buffer | null> {
+  const ext = getOriginalExt(imagePath);
+  const contenido = leerArchivoSeguro(imagePath);
+  if (!contenido) return null;
 
-  return new Promise((resolve, reject) => {
-    const doc = new PDFDocument({ autoFirstPage: false, margin: 0 });
-    const chunks: Buffer[] = [];
-    doc.on('data', (c: Buffer) => chunks.push(c));
-    doc.on('end', () => resolve(Buffer.concat(chunks)));
-    doc.on('error', reject);
+  if (ext === '.pdf') return contenido;
 
-    doc.addPage({ size: 'A4', margin: 20 });
+  // Para imágenes, necesitamos escribir temporalmente para que pdfkit pueda leerlas
+  const tempDir = path.join(__dirname, '../../temp');
+  if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir, { recursive: true });
+  const tempFile = path.join(tempDir, `temp_${Date.now()}${ext}`);
 
-    if (titulo) {
-      doc.fontSize(11).fillColor('#142D5C').font('Helvetica-Bold')
-        .text(titulo, { align: 'center' });
-      doc.moveDown(0.5);
-    }
+  try {
+    fs.writeFileSync(tempFile, contenido);
 
-    const margen = 20;
-    const anchoDisp = doc.page.width - margen * 2;
-    const yInicio   = titulo ? doc.y : margen;
-    const altoDisp  = doc.page.height - yInicio - margen;
+    return new Promise((resolve, reject) => {
+      const doc = new PDFDocument({ autoFirstPage: false, margin: 0 });
+      const chunks: Buffer[] = [];
+      doc.on('data', (c: Buffer) => chunks.push(c));
+      doc.on('end', () => {
+        // Limpiar archivo temporal
+        try { fs.unlinkSync(tempFile); } catch { /* ignorar */ }
+        resolve(Buffer.concat(chunks));
+      });
+      doc.on('error', (err) => {
+        try { fs.unlinkSync(tempFile); } catch { /* ignorar */ }
+        reject(err);
+      });
 
-    doc.image(imagePath, margen, yInicio, {
-      fit: [anchoDisp, altoDisp],
-      align: 'center',
-      valign: 'center',
+      doc.addPage({ size: 'A4', margin: 20 });
+
+      if (titulo) {
+        doc.fontSize(11).fillColor('#142D5C').font('Helvetica-Bold')
+          .text(titulo, { align: 'center' });
+        doc.moveDown(0.5);
+      }
+
+      const margen = 20;
+      const anchoDisp = doc.page.width - margen * 2;
+      const yInicio   = titulo ? doc.y : margen;
+      const altoDisp  = doc.page.height - yInicio - margen;
+
+      doc.image(tempFile, margen, yInicio, {
+        fit: [anchoDisp, altoDisp],
+        align: 'center',
+        valign: 'center',
+      });
+
+      doc.end();
     });
-
-    doc.end();
-  });
+  } catch (err) {
+    // Limpiar archivo temporal si hay error
+    try { fs.unlinkSync(tempFile); } catch { /* ignorar */ }
+    console.error('Error convirtiendo imagen a PDF:', err);
+    return null;
+  }
 }
 
 /**
  * Crea un PDF de dos páginas: página 1 = cédula frente, página 2 = cédula reverso.
- * Sólo acepta imágenes; si alguna ruta es PDF se incluye como página independiente
- * simplificada (texto de aviso + la ruta).
+ * Soporta archivos cifrados.
  */
-async function cedulaAPdf(frentePath: string, reversoPath: string): Promise<Buffer> {
+async function cedulaAPdf(frentePath: string, reversoPath: string): Promise<Buffer | null> {
+  // Preparar archivos temporales si están cifrados
+  const tempDir = path.join(__dirname, '../../temp');
+  if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir, { recursive: true });
+
+  const tempFiles: string[] = [];
+  let frenteTempPath = frentePath;
+  let reversoTempPath = reversoPath;
+
+  // Descifrar frente si existe y está cifrado
+  if (frentePath && fs.existsSync(frentePath)) {
+    const contenido = leerArchivoSeguro(frentePath);
+    if (contenido) {
+      const ext = getOriginalExt(frentePath);
+      frenteTempPath = path.join(tempDir, `frente_${Date.now()}${ext}`);
+      fs.writeFileSync(frenteTempPath, contenido);
+      tempFiles.push(frenteTempPath);
+    }
+  }
+
+  // Descifrar reverso si existe y está cifrado
+  if (reversoPath && fs.existsSync(reversoPath)) {
+    const contenido = leerArchivoSeguro(reversoPath);
+    if (contenido) {
+      const ext = getOriginalExt(reversoPath);
+      reversoTempPath = path.join(tempDir, `reverso_${Date.now()}${ext}`);
+      fs.writeFileSync(reversoTempPath, contenido);
+      tempFiles.push(reversoTempPath);
+    }
+  }
+
+  const cleanup = () => {
+    for (const tf of tempFiles) {
+      try { fs.unlinkSync(tf); } catch { /* ignorar */ }
+    }
+  };
+
   return new Promise((resolve, reject) => {
     const doc = new PDFDocument({ autoFirstPage: false, margin: 0 });
     const chunks: Buffer[] = [];
     doc.on('data', (c: Buffer) => chunks.push(c));
-    doc.on('end', () => resolve(Buffer.concat(chunks)));
-    doc.on('error', reject);
+    doc.on('end', () => {
+      cleanup();
+      resolve(Buffer.concat(chunks));
+    });
+    doc.on('error', (err) => {
+      cleanup();
+      reject(err);
+    });
 
     const agregarPagina = (filePath: string, etiqueta: string) => {
-      const ext = path.extname(filePath).toLowerCase();
+      if (!fs.existsSync(filePath)) return;
+      const ext = getOriginalExt(filePath);
       doc.addPage({ size: 'A4', margin: 20 });
       doc.fontSize(11).fillColor('#142D5C').font('Helvetica-Bold')
         .text(etiqueta, { align: 'center' });
@@ -84,8 +191,8 @@ async function cedulaAPdf(frentePath: string, reversoPath: string): Promise<Buff
       }
     };
 
-    if (fs.existsSync(frentePath))  agregarPagina(frentePath,  'CÉDULA — FRENTE');
-    if (fs.existsSync(reversoPath)) agregarPagina(reversoPath, 'CÉDULA — REVERSO');
+    if (frenteTempPath && fs.existsSync(frenteTempPath))  agregarPagina(frenteTempPath,  'CÉDULA — FRENTE');
+    if (reversoTempPath && fs.existsSync(reversoTempPath)) agregarPagina(reversoTempPath, 'CÉDULA — REVERSO');
 
     doc.end();
   });
@@ -133,9 +240,9 @@ export async function generarZipCompletos(outputPath: string): Promise<{
 
   type EntradaEstudiante = {
     folderName: string;
-    tituloPdf?: Buffer;
-    cedulaPdf?: Buffer;
-    otrosArchivos: Array<{ filePath: string; archiveName: string }>;
+    tituloPdf?: Buffer | null;
+    cedulaPdf?: Buffer | null;
+    otrosArchivos: Array<{ buffer: Buffer; archiveName: string }>;
     resumen: string;
   };
 
@@ -154,10 +261,11 @@ export async function generarZipCompletos(outputPath: string): Promise<{
     if (tituloDoc?.archivo) {
       const tituloPath = path.join(docsDir, tituloDoc.archivo);
       if (fs.existsSync(tituloPath)) {
-        tituloPdf = await imagenAPdf(
+        const pdfResult = await imagenAPdf(
           tituloPath,
           `TÍTULO — ${nombreCompleto}  |  Cédula: ${formatCedula(est.cedula)}`,
         );
+        tituloPdf = pdfResult ?? undefined;
       }
     }
 
@@ -168,10 +276,11 @@ export async function generarZipCompletos(outputPath: string): Promise<{
     const reversoPath = est.documentos.cedulaReverso?.archivo
       ? path.join(docsDir, est.documentos.cedulaReverso.archivo) : null;
     if (frentePath || reversoPath) {
-      cedulaPdf = await cedulaAPdf(frentePath ?? '', reversoPath ?? '');
+      const pdfResult = await cedulaAPdf(frentePath ?? '', reversoPath ?? '');
+      cedulaPdf = pdfResult ?? undefined;
     }
 
-    // 3. Resto sin conversión
+    // 3. Resto sin conversión (pero descifrar si es necesario)
     const otrosDocs = ['fotoCarnet', 'formularioMatricula', 'otros'] as const;
     const otrosArchivos: EntradaEstudiante['otrosArchivos'] = [];
     for (const docType of otrosDocs) {
@@ -179,10 +288,15 @@ export async function generarZipCompletos(outputPath: string): Promise<{
       if (doc?.archivo) {
         const filePath = path.join(docsDir, doc.archivo);
         if (fs.existsSync(filePath)) {
-          otrosArchivos.push({
-            filePath,
-            archiveName: `${folderName}/${docType}${path.extname(doc.archivo)}`,
-          });
+          // Leer y descifrar el archivo
+          const contenido = leerArchivoSeguro(filePath);
+          if (contenido) {
+            const ext = getOriginalExt(filePath);
+            otrosArchivos.push({
+              buffer: contenido,
+              archiveName: `${folderName}/${docType}${ext}`,
+            });
+          }
         }
       }
     }
@@ -221,8 +335,8 @@ export async function generarZipCompletos(outputPath: string): Promise<{
     for (const { folderName, tituloPdf, cedulaPdf, otrosArchivos, resumen } of entradas) {
       if (tituloPdf) archive.append(tituloPdf, { name: `${folderName}/titulo.pdf` });
       if (cedulaPdf) archive.append(cedulaPdf, { name: `${folderName}/cedula.pdf` });
-      for (const { filePath, archiveName } of otrosArchivos) {
-        archive.file(filePath, { name: archiveName });
+      for (const { buffer, archiveName } of otrosArchivos) {
+        archive.append(buffer, { name: archiveName });
       }
       archive.append(resumen, { name: `${folderName}/datos.txt` });
     }
