@@ -103,8 +103,12 @@ export default function DownloadZipModal({ onClose, onConfirm }: Props) {
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
 
       <div
-        className="modal-shell-compact"
-        style={{ boxShadow: '0 25px 60px rgba(20,45,92,0.22), 0 8px 24px rgba(20,45,92,0.12)' }}
+        className="relative bg-white rounded-2xl w-full flex flex-col overflow-hidden"
+        style={{ 
+          width: 'min(90vw, 560px)',
+          maxHeight: 'min(84vh, auto)',
+          boxShadow: '0 25px 60px rgba(20,45,92,0.22), 0 8px 24px rgba(20,45,92,0.12)'
+        }}
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
