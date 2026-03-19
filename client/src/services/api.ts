@@ -248,6 +248,20 @@ export const downloadDocument = async (cedula: string, tipoDoc: string) => {
   window.URL.revokeObjectURL(url);
 };
 
+/**
+ * Obtiene el documento como Blob para previsualización en el frontend.
+ */
+export const getDocumentBlob = async (cedula: string, tipoDoc: string) => {
+  const response = await API.get(`/documents/${cedula}/download/${tipoDoc}`, {
+    responseType: 'blob',
+  });
+
+  return {
+    blob: response.data as Blob,
+    contentType: response.headers['content-type'] || '',
+  };
+};
+
 // === ESTADÍSTICAS ===
 export const getDashboard = () =>
   API.get<DashboardStats>('/stats/dashboard').then(r => r.data);

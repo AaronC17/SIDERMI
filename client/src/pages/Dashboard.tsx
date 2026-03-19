@@ -15,10 +15,12 @@ import {
 import { getDashboard, descargarCompletos } from '../services/api';
 import type { DashboardStats } from '../types';
 import { useToast } from '../components/Toast';
+import DownloadZipModal from '../components/DownloadZipModal';
 
 export default function Dashboard() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showZipModal, setShowZipModal] = useState(false);
   const { addToast } = useToast();
   const navigate = useNavigate();
 
@@ -63,8 +65,20 @@ export default function Dashboard() {
     try {
       await descargarCompletos();
       addToast('Archivo ZIP descargado', 'success');
-    } catch {
-      addToast('Error al generar ZIP', 'error');
+    } catch (err: any) {
+      let msg = 'Error al generar ZIP';
+      const data = err?.response?.data;
+      if (data instanceof Blob) {
+        try {
+          const json = JSON.parse(await data.text());
+          if (json?.error) msg = json.error;
+        } catch {
+          // Ignorar parse errors y usar mensaje genérico
+        }
+      } else if (data?.error) {
+        msg = data.error;
+      }
+      addToast(msg, 'error');
     }
   };
 
@@ -77,12 +91,19 @@ export default function Dashboard() {
           <p className="text-sm text-slate-500">Resumen general del proceso de matrícula</p>
         </div>
         <button
-          onClick={handleDownload}
+          onClick={() => setShowZipModal(true)}
           className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-utn-blue text-white rounded-xl text-sm font-semibold hover:bg-utn-blue-light transition-colors shadow-md shadow-utn-blue/30"
         >
           <Download size={15} /> Descargar Completos
         </button>
       </div>
+
+      {showZipModal && (
+        <DownloadZipModal
+          onClose={() => setShowZipModal(false)}
+          onConfirm={handleDownload}
+        />
+      )}
 
       {/* ═══ Hero stat row  ═══ */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">

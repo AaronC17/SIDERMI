@@ -58,3 +58,26 @@
 
 /* Safe area insets for notched phones */
 .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
+
+/* Modal sizing system */
+.modal-overlay {
+  @apply fixed inset-0 z-50 flex items-center justify-center p-4;
+}
+
+.modal-shell {
+  @apply relative bg-white rounded-2xl w-full flex flex-col overflow-hidden;
+  width: min(96vw, 980px);
+  height: min(90vh, 760px);
+}
+
+.modal-shell-compact {
+  @apply relative bg-white rounded-2xl w-full flex flex-col overflow-hidden;
+  width: min(94vw, 680px);
+  height: min(84vh, 620px);
+}
+
+.modal-shell-wide {
+  @apply relative bg-white rounded-2xl w-full flex flex-col overflow-hidden;
+  width: min(98vw, 1200px);
+  height: min(92vh, 840px);
+}

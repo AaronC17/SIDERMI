@@ -219,8 +219,8 @@ export default function Users() {
 
       {/* ═══════ Modal crear / editar ═══════ */}
       {modal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md">
+        <div className="modal-overlay bg-black/40 backdrop-blur-sm">
+          <div className="modal-shell-compact shadow-xl">
             {/* Header modal */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
               <h3 className="font-bold text-slate-800 text-base">
@@ -232,7 +232,7 @@ export default function Users() {
             </div>
 
             {/* Body */}
-            <div className="px-6 py-5 space-y-4">
+            <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
               {/* Username (solo en creación) */}
               {modal === 'create' && (
                 <div className="space-y-1.5">
