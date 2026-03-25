@@ -76,7 +76,6 @@ export default function Login() {
               Gestión de matrícula
             </h2>
             <p className="text-base xl:text-lg text-white/50 font-light mt-1">centralizada y eficiente.</p>
-            <div className="mt-4 xl:mt-5 w-10 h-[2px] bg-blue-400/40 rounded-full" />
           </div>
 
           <div className="space-y-3 xl:space-y-5 -ml-3">
