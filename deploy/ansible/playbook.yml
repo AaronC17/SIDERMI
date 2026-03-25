@@ -1,0 +1,65 @@
+---
+# ===========================================
+# SIDERMI - Playbook de Despliegue
+# ===========================================
+# Autor: UTN
+# Descripcion: Automatiza el despliegue completo
+#              del sistema SIDERMI en un servidor Ubuntu
+#
+# USO:
+#   ansible-playbook -i inventory.yml playbook.yml
+#
+# Para una sede especifica:
+#   ansible-playbook -i inventory.yml playbook.yml --limit sede_guanacaste
+# ===========================================
+
+- name: Desplegar SIDERMI
+  hosts: sidermi_servers
+  become: yes
+  gather_facts: yes
+
+  pre_tasks:
+    - name: Mostrar informacion del servidor
+      debug:
+        msg: |
+          ========================================
+          Desplegando SIDERMI en: {{ inventory_hostname }}
+          Host: {{ ansible_host }}
+          OS: {{ ansible_distribution }} {{ ansible_distribution_version }}
+          ========================================
+
+    - name: Actualizar cache de apt
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+
+  roles:
+    - common
+    - nodejs
+    - mongodb
+    - sidermi
+    - nginx
+
+  post_tasks:
+    - name: Mostrar resumen de despliegue
+      debug:
+        msg: |
+          ========================================
+          SIDERMI desplegado exitosamente!
+
+          URL: http://{{ ansible_host }}
+
+          Credenciales por defecto:
+            Admin: admin / utn2026
+            Registro: registro / registro2026
+
+          Servicios:
+            - Backend: PM2 (puerto {{ backend_port }})
+            - Frontend: Nginx (puerto 80)
+            - Base de datos: MongoDB (puerto 27017)
+
+          Comandos utiles:
+            pm2 list          - Ver procesos
+            pm2 logs          - Ver logs
+            pm2 restart all   - Reiniciar todo
+          ========================================

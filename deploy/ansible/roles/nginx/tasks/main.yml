@@ -1,0 +1,38 @@
+---
+# Role: nginx
+# Instala y configura Nginx como reverse proxy
+
+- name: Instalar Nginx
+  apt:
+    name: nginx
+    state: present
+
+- name: Crear configuracion de Nginx para SIDERMI
+  template:
+    src: sidermi.conf.j2
+    dest: /etc/nginx/sites-available/sidermi
+    mode: '0644'
+  notify: reload nginx
+
+- name: Habilitar sitio SIDERMI
+  file:
+    src: /etc/nginx/sites-available/sidermi
+    dest: /etc/nginx/sites-enabled/sidermi
+    state: link
+  notify: reload nginx
+
+- name: Deshabilitar sitio por defecto de Nginx
+  file:
+    path: /etc/nginx/sites-enabled/default
+    state: absent
+  notify: reload nginx
+
+- name: Verificar configuracion de Nginx
+  command: nginx -t
+  changed_when: false
+
+- name: Iniciar y habilitar Nginx
+  systemd:
+    name: nginx
+    state: started
+    enabled: yes

@@ -1,0 +1,41 @@
+---
+# Role: mongodb
+# Instala y configura MongoDB
+
+- name: Agregar llave GPG de MongoDB
+  apt_key:
+    url: https://www.mongodb.org/static/pgp/server-{{ mongodb_version }}.asc
+    state: present
+
+- name: Agregar repositorio de MongoDB
+  apt_repository:
+    repo: "deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu jammy/mongodb-org/{{ mongodb_version }} multiverse"
+    state: present
+    filename: mongodb-org-{{ mongodb_version }}
+    update_cache: yes
+
+- name: Instalar MongoDB
+  apt:
+    name: mongodb-org
+    state: present
+
+- name: Iniciar y habilitar servicio MongoDB
+  systemd:
+    name: mongod
+    state: started
+    enabled: yes
+
+- name: Esperar a que MongoDB este listo
+  wait_for:
+    port: 27017
+    delay: 5
+    timeout: 60
+
+- name: Verificar estado de MongoDB
+  command: mongod --version
+  register: mongo_version
+  changed_when: false
+
+- name: Mostrar version de MongoDB instalada
+  debug:
+    msg: "MongoDB instalado: {{ mongo_version.stdout_lines[0] }}"

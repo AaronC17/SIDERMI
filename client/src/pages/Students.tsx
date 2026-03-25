@@ -80,7 +80,6 @@ export default function Students() {
   const [search, setSearch] = useState('');
   const [matriculado, setMatriculado] = useState<'' | 'true' | 'false'>('');
   const [estado, setEstado] = useState('');
-  const [estadoPagoFiltro, setEstadoPagoFiltro] = useState('');
   const [tipoMat, setTipoMat] = useState('');
   const [carrera, setCarrera] = useState('');
   const [docFiltro, setDocFiltro] = useState(''); // formato: "falta:titulo" o "tiene:titulo"
@@ -100,7 +99,6 @@ export default function Students() {
     if (search.trim()) params.buscar = search.trim();
     if (matriculado) params.matriculado = matriculado;
     if (estado) params.estado = estado;
-    if (estadoPagoFiltro) params.estadoPagoFiltro = estadoPagoFiltro;
     if (tipoMat) params.tipoMatricula = tipoMat;
     if (carrera) params.carrera = carrera;
     if (docFiltro) {
@@ -113,7 +111,7 @@ export default function Students() {
       .then(setData)
       .catch(() => addToast('Error al cargar estudiantes', 'error'))
       .finally(() => setLoading(false));
-  }, [page, search, matriculado, estado, estadoPagoFiltro, tipoMat, carrera, docFiltro, sort, order]);
+  }, [page, search, matriculado, estado, tipoMat, carrera, docFiltro, sort, order]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
@@ -122,11 +120,11 @@ export default function Students() {
   }, []);
 
   /* ── Derived ── */
-  const activeFilters = [estado, estadoPagoFiltro, tipoMat, carrera, docFiltro].filter(Boolean).length;
+  const activeFilters = [estado, tipoMat, carrera, docFiltro].filter(Boolean).length;
   const [filtersOpen, setFiltersOpen] = useState(true);
 
   const clearAll = () => {
-    setSearch(''); setMatriculado(''); setEstado(''); setEstadoPagoFiltro(''); setTipoMat(''); setCarrera(''); setDocFiltro('');
+    setSearch(''); setMatriculado(''); setEstado(''); setTipoMat(''); setCarrera(''); setDocFiltro('');
     setSort('primerApellido'); setOrder('asc'); setPage(1);
   };
 
@@ -257,7 +255,7 @@ export default function Students() {
           </div>
 
           {/* Filter selects grid */}
-          <div className="grid grid-cols-2 lg:grid-cols-5 gap-2">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
             {/* Estado */}
             <div className="flex flex-col gap-1">
               <label className="flex items-center gap-1 text-[10px] font-semibold text-slate-400 uppercase tracking-wider px-0.5">
@@ -274,29 +272,6 @@ export default function Students() {
                   <option value="PENDIENTE">Pendiente</option>
                   <option value="COMPLETO">Completo</option>
                   <option value="NOTIFICADO">Notificado</option>
-                </select>
-                <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400">
-                  <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 3.5L5 6.5L8 3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                </span>
-              </div>
-            </div>
-
-            {/* Tipo matrícula */}
-            <div className="flex flex-col gap-1">
-              <label className="flex items-center gap-1 text-[10px] font-semibold text-slate-400 uppercase tracking-wider px-0.5">
-                <ClipboardList size={10} /> Pago
-              </label>
-              <div className={`relative rounded-xl border transition-all ${estadoPagoFiltro ? 'border-utn-blue/40 bg-utn-blue/[0.04]' : 'border-slate-200 bg-slate-50 hover:border-slate-300'}`}>
-                <select
-                  value={estadoPagoFiltro}
-                  onChange={e => { setEstadoPagoFiltro(e.target.value); setPage(1); }}
-                  className={`w-full px-3 py-2 text-xs font-medium outline-none cursor-pointer bg-transparent appearance-none pr-7 rounded-xl transition-colors
-                    ${estadoPagoFiltro ? 'text-utn-blue font-semibold' : 'text-slate-500'}`}
-                >
-                  <option value="">Todos</option>
-                  <option value="PENDIENTE">Pendiente</option>
-                  <option value="TRAMITADO">Tramitado</option>
-                  <option value="NULO">Nulo</option>
                 </select>
                 <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400">
                   <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 3.5L5 6.5L8 3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
@@ -366,13 +341,11 @@ export default function Students() {
                     <option value="tiene:titulo">Tiene: Título</option>
                     <option value="tiene:cedulaFrente">Tiene: Céd. Frente</option>
                     <option value="tiene:cedulaReverso">Tiene: Céd. Reverso</option>
-                    <option value="tiene:fotoCarnet">Tiene: Foto</option>
                   </optgroup>
                   <optgroup label="── Le falta ──">
                     <option value="falta:titulo">Le falta: Título</option>
                     <option value="falta:cedulaFrente">Le falta: Céd. Frente</option>
                     <option value="falta:cedulaReverso">Le falta: Céd. Reverso</option>
-                    <option value="falta:fotoCarnet">Le falta: Foto</option>
                   </optgroup>
                 </select>
                 <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400">
@@ -406,7 +379,6 @@ export default function Students() {
                   s.documentos?.titulo?.estado,
                   s.documentos?.cedulaFrente?.estado,
                   s.documentos?.cedulaReverso?.estado,
-                  s.documentos?.fotoCarnet?.estado,
                 ];
                 const docsTotal = docs.length;
                 const docsCompletos = docs.filter(d => d === 'COMPLETO').length;
@@ -477,7 +449,6 @@ export default function Students() {
                           <DocDot estado={s.documentos?.titulo?.estado || 'NO_REVISADO'} label="Título" />
                           <DocDot estado={s.documentos?.cedulaFrente?.estado || 'NO_REVISADO'} label="Céd. F" />
                           <DocDot estado={s.documentos?.cedulaReverso?.estado || 'NO_REVISADO'} label="Céd. R" />
-                          <DocDot estado={s.documentos?.fotoCarnet?.estado || 'NO_REVISADO'} label="Foto" />
                         </div>
                       </div>
                       <div className="h-1 rounded-full bg-slate-100 overflow-hidden">
@@ -532,7 +503,6 @@ export default function Students() {
                       s.documentos?.titulo?.estado,
                       s.documentos?.cedulaFrente?.estado,
                       s.documentos?.cedulaReverso?.estado,
-                      s.documentos?.fotoCarnet?.estado,
                     ];
                     const docsTotal = docs.length;
                     const docsCompletos = docs.filter(d => d === 'COMPLETO').length;
@@ -595,7 +565,6 @@ export default function Students() {
                                 <DocDot estado={s.documentos?.titulo?.estado || 'NO_REVISADO'} label="Título" />
                                 <DocDot estado={s.documentos?.cedulaFrente?.estado || 'NO_REVISADO'} label="Céd. F" />
                                 <DocDot estado={s.documentos?.cedulaReverso?.estado || 'NO_REVISADO'} label="Céd. R" />
-                                <DocDot estado={s.documentos?.fotoCarnet?.estado || 'NO_REVISADO'} label="Foto" />
                               </div>
                             </div>
                             <div className="h-1 rounded-full bg-slate-100 overflow-hidden w-full">

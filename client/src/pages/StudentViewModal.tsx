@@ -26,9 +26,6 @@ const DOC_LABELS: Record<string, string> = {
   titulo: 'Título de Bachillerato',
   cedulaFrente: 'Cédula (Frente)',
   cedulaReverso: 'Cédula (Reverso)',
-  fotoCarnet: 'Foto Carnet',
-  formularioMatricula: 'Formulario de Matrícula',
-  otros: 'Otros',
 };
 
 const DOC_ESTADO_STYLE: Record<string, string> = {

@@ -1,0 +1,103 @@
+---
+# Role: sidermi
+# Despliega la aplicacion SIDERMI
+
+- name: Copiar proyecto al servidor
+  synchronize:
+    src: "{{ playbook_dir }}/../../"
+    dest: "{{ app_dir }}/"
+    delete: yes
+    rsync_opts:
+      - "--exclude=node_modules"
+      - "--exclude=.git"
+      - "--exclude=dist"
+      - "--exclude=deploy"
+      - "--exclude=*.log"
+  become_user: "{{ app_user }}"
+
+- name: Generar JWT_SECRET si no existe
+  set_fact:
+    jwt_secret_generated: "{{ lookup('pipe', 'openssl rand -hex 32') }}"
+  when: jwt_secret is not defined or 'CAMBIAR' in jwt_secret
+
+- name: Generar DOCUMENT_ENCRYPTION_KEY si no existe
+  set_fact:
+    enc_key_generated: "{{ lookup('pipe', 'openssl rand -hex 32') }}"
+  when: document_encryption_key is not defined or 'CAMBIAR' in document_encryption_key
+
+- name: Crear archivo .env del backend
+  template:
+    src: backend.env.j2
+    dest: "{{ backend_dir }}/.env"
+    owner: "{{ app_user }}"
+    group: "{{ app_group }}"
+    mode: '0600'
+
+- name: Crear archivo .env del frontend
+  template:
+    src: frontend.env.j2
+    dest: "{{ frontend_dir }}/.env"
+    owner: "{{ app_user }}"
+    group: "{{ app_group }}"
+    mode: '0644'
+
+- name: Instalar dependencias del backend
+  npm:
+    path: "{{ backend_dir }}"
+    state: present
+  become_user: "{{ app_user }}"
+
+- name: Compilar backend TypeScript
+  command: npm run build
+  args:
+    chdir: "{{ backend_dir }}"
+  become_user: "{{ app_user }}"
+
+- name: Instalar dependencias del frontend
+  npm:
+    path: "{{ frontend_dir }}"
+    state: present
+  become_user: "{{ app_user }}"
+
+- name: Compilar frontend para produccion
+  command: npm run build
+  args:
+    chdir: "{{ frontend_dir }}"
+  become_user: "{{ app_user }}"
+
+- name: Configurar permisos del frontend dist
+  file:
+    path: "{{ frontend_dir }}/dist"
+    state: directory
+    owner: "{{ app_user }}"
+    group: "{{ app_group }}"
+    mode: '0755'
+    recurse: yes
+
+- name: Configurar permisos del home
+  file:
+    path: "/home/{{ app_user }}"
+    mode: '0755'
+
+- name: Iniciar backend con PM2
+  command: pm2 start {{ backend_dir }}/dist/index.js --name sidermi-backend
+  args:
+    chdir: "{{ backend_dir }}"
+  become_user: "{{ app_user }}"
+  register: pm2_start
+  failed_when: false
+
+- name: Reiniciar backend si ya existe
+  command: pm2 restart sidermi-backend
+  become_user: "{{ app_user }}"
+  when: pm2_start.rc != 0
+
+- name: Guardar configuracion de PM2
+  command: pm2 save
+  become_user: "{{ app_user }}"
+
+- name: Esperar a que el backend este listo
+  wait_for:
+    port: "{{ backend_port }}"
+    delay: 3
+    timeout: 60

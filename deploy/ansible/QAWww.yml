@@ -1,0 +1,31 @@
+# ===========================================
+# Inventario de Servidores SIDERMI
+# ===========================================
+# Para agregar una nueva sede, simplemente agrega
+# un nuevo host bajo el grupo 'sidermi_servers'
+# ===========================================
+
+all:
+  children:
+    sidermi_servers:
+      hosts:
+        # Sede Principal
+        sede_principal:
+          ansible_host: 10.90.29.49
+          ansible_user: sidermi
+          server_name: "SIDERMI Principal"
+
+        # Ejemplo: Agregar nueva sede
+        # sede_guanacaste:
+        #   ansible_host: 10.91.30.50
+        #   ansible_user: sidermi
+        #   server_name: "SIDERMI Guanacaste"
+
+        # sede_limon:
+        #   ansible_host: 10.92.30.50
+        #   ansible_user: sidermi
+        #   server_name: "SIDERMI Limon"
+
+  vars:
+    ansible_python_interpreter: /usr/bin/python3
+    ansible_ssh_common_args: '-o StrictHostKeyChecking=no'

@@ -1,0 +1,40 @@
+---
+# Role: nodejs
+# Instala Node.js y PM2
+
+- name: Agregar llave GPG de NodeSource
+  apt_key:
+    url: https://deb.nodesource.com/gpgkey/nodesource.gpg.key
+    state: present
+
+- name: Agregar repositorio de NodeSource
+  apt_repository:
+    repo: "deb https://deb.nodesource.com/node_{{ nodejs_version }}.x {{ ansible_distribution_release }} main"
+    state: present
+    update_cache: yes
+
+- name: Instalar Node.js
+  apt:
+    name: nodejs
+    state: present
+
+- name: Verificar version de Node.js
+  command: node --version
+  register: node_version
+  changed_when: false
+
+- name: Mostrar version de Node.js instalada
+  debug:
+    msg: "Node.js instalado: {{ node_version.stdout }}"
+
+- name: Instalar PM2 globalmente
+  npm:
+    name: pm2
+    global: yes
+    state: present
+
+- name: Configurar PM2 startup para el usuario
+  command: "pm2 startup systemd -u {{ app_user }} --hp /home/{{ app_user }}"
+  args:
+    creates: /etc/systemd/system/pm2-{{ app_user }}.service
+  become: yes

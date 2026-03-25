@@ -50,7 +50,6 @@ router.get('/', async (req: Request, res: Response) => {
     const userRole = req.user?.rol || 'Consulta';
     const {
       estado,
-      estadoPagoFiltro,
       tipoMatricula,
       carrera,
       buscar,
@@ -63,6 +62,10 @@ router.get('/', async (req: Request, res: Response) => {
     } = req.query;
 
     const filter: any = { activo: true };
+
+    // NOTA: Filtro de estado de pago deshabilitado temporalmente para debug
+    // TODO: Activar cuando los datos tengan estadoPago correctamente configurado
+    // filter.estadoPago = { $regex: /^(TRA|TRAMITADO|PAG|PAGADO)$/i };
 
     if (estado) filter.estadoAvatar = estado;
     if (tipoMatricula) filter.tipoMatricula = tipoMatricula;
@@ -78,24 +81,6 @@ router.get('/', async (req: Request, res: Response) => {
         { codigoCarrera: carrera },
         { codigoCarreraAvatar: carrera },
         { codigoCarreraManual: carrera },
-        ],
-      });
-    }
-
-    // Filtro por estado de pago consolidado
-    if (estadoPagoFiltro === 'PENDIENTE') {
-      andFilters.push({
-        estadoPago: { $regex: /^(PEN|PENDIENTE)$/i },
-      });
-    } else if (estadoPagoFiltro === 'TRAMITADO') {
-      andFilters.push({
-        estadoPago: { $regex: /^(TRA|TRAMITADO|PAG|PAGADO)$/i },
-      });
-    } else if (estadoPagoFiltro === 'NULO') {
-      andFilters.push({
-        $or: [
-          { estadoPago: { $in: ['', null] } },
-          { estadoPago: { $regex: /^(ANU|ANULADO|NUL|NULO)$/i } },
         ],
       });
     }
@@ -142,7 +127,6 @@ router.get('/', async (req: Request, res: Response) => {
                     '$documentos.titulo.estado',
                     '$documentos.cedulaFrente.estado',
                     '$documentos.cedulaReverso.estado',
-                    '$documentos.fotoCarnet.estado',
                   ],
                   as: 'e',
                   cond: { $eq: ['$$e', 'COMPLETO'] },
@@ -344,8 +328,6 @@ router.post('/:cedula/notificar', requireRole('Administrador', 'Registro'), asyn
     if (docs.titulo.estado !== 'COMPLETO') faltantes.push('Título de bachillerato');
     if (docs.cedulaFrente.estado !== 'COMPLETO') faltantes.push('Cédula de identidad (frente)');
     if (docs.cedulaReverso.estado !== 'COMPLETO') faltantes.push('Cédula de identidad (reverso)');
-    if (docs.fotoCarnet.estado !== 'COMPLETO') faltantes.push('Fotografía tipo carnet');
-    if (docs.formularioMatricula.estado !== 'COMPLETO') faltantes.push('Formulario de matrícula');
 
     if (faltantes.length === 0) {
       return res.status(400).json({ error: 'El estudiante tiene todos los documentos completos' });

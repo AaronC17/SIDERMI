@@ -13,9 +13,6 @@ const DOC_LABELS: Record<string, string> = {
   titulo:          'Título de Bachillerato',
   cedulaFrente:    'Cédula (Frente)',
   cedulaReverso:   'Cédula (Reverso)',
-  fotoCarnet:      'Foto Carnet',
-  formularioMatricula: 'Formulario de Matrícula',
-  otros:           'Otros',
 };
 
 // Tipos MIME para servir archivos
@@ -54,7 +51,7 @@ function filtrarDocumentosPorRol(documentos: any, rol: string) {
 router.post('/:cedula/upload/:tipoDoc', requireRole('Administrador', 'Registro'), uploadDocument.single('archivo'), async (req: Request, res: Response) => {
   try {
     const { cedula, tipoDoc } = req.params;
-    const validTypes = ['titulo', 'cedulaFrente', 'cedulaReverso', 'fotoCarnet', 'formularioMatricula', 'otros'];
+    const validTypes = ['titulo', 'cedulaFrente', 'cedulaReverso'];
 
     // Validar cédula (solo números y guiones)
     if (!/^[\d-]+$/.test(cedula)) {
@@ -214,7 +211,7 @@ router.get('/:cedula/download/:tipoDoc', requireRole('Administrador', 'Registro'
 router.delete('/:cedula/:tipoDoc', requireRole('Administrador', 'Registro'), async (req: Request, res: Response) => {
   try {
     const { cedula, tipoDoc } = req.params;
-    const validTypes = ['titulo', 'cedulaFrente', 'cedulaReverso', 'fotoCarnet', 'formularioMatricula', 'otros'];
+    const validTypes = ['titulo', 'cedulaFrente', 'cedulaReverso'];
 
     // Validar cédula
     if (!/^[\d-]+$/.test(cedula)) {

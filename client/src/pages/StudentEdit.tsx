@@ -30,7 +30,6 @@ const DOC_LABELS: Record<string, string> = {
   titulo: 'Título de Bachillerato',
   cedulaFrente: 'Cédula (Frente)',
   cedulaReverso: 'Cédula (Reverso)',
-  fotoCarnet: 'Foto Carnet',
 };
 
 const DOC_ESTADOS = ['NO_REVISADO', 'COMPLETO', 'INCOMPLETO', 'FALTANTE'] as const;

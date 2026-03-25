@@ -1,0 +1,78 @@
+---
+# Role: common
+# Instala herramientas basicas del sistema
+
+- name: Instalar paquetes esenciales
+  apt:
+    name:
+      - curl
+      - wget
+      - git
+      - build-essential
+      - software-properties-common
+      - gnupg
+      - ca-certificates
+      - python3
+      - python3-pip
+      - ufw
+    state: present
+
+- name: Crear usuario de aplicacion
+  user:
+    name: "{{ app_user }}"
+    shell: /bin/bash
+    create_home: yes
+    state: present
+
+- name: Configurar sudoers sin password para usuario
+  lineinfile:
+    path: /etc/sudoers.d/{{ app_user }}
+    line: "{{ app_user }} ALL=(ALL) NOPASSWD:ALL"
+    create: yes
+    mode: '0440'
+    validate: 'visudo -cf %s'
+
+- name: Configurar firewall UFW
+  block:
+    - name: Configurar politica por defecto - denegar entrante
+      ufw:
+        direction: incoming
+        policy: deny
+
+    - name: Configurar politica por defecto - permitir saliente
+      ufw:
+        direction: outgoing
+        policy: allow
+
+    - name: Permitir SSH desde red local
+      ufw:
+        rule: allow
+        port: '22'
+        from_ip: "{{ allowed_network }}"
+        comment: "SSH red local"
+
+    - name: Permitir HTTP desde red local
+      ufw:
+        rule: allow
+        port: '80'
+        from_ip: "{{ allowed_network }}"
+        comment: "HTTP red local"
+
+    - name: Permitir HTTPS desde red local
+      ufw:
+        rule: allow
+        port: '443'
+        from_ip: "{{ allowed_network }}"
+        comment: "HTTPS red local"
+
+    - name: Habilitar UFW
+      ufw:
+        state: enabled
+
+- name: Crear directorio de aplicacion
+  file:
+    path: "{{ app_dir }}"
+    state: directory
+    owner: "{{ app_user }}"
+    group: "{{ app_group }}"
+    mode: '0755'

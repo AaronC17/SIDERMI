@@ -42,9 +42,6 @@ export interface Student {
     titulo: DocumentoEstado;
     cedulaFrente: DocumentoEstado;
     cedulaReverso: DocumentoEstado;
-    fotoCarnet: DocumentoEstado;
-    formularioMatricula: DocumentoEstado;
-    otros: DocumentoEstado;
   };
   medioContacto: string;
   fechaContactoCorreo: string | null;

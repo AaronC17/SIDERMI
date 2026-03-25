@@ -542,7 +542,6 @@ export default function Stats() {
               <option value="titulo">Título de Bachillerato</option>
               <option value="cedulaFrente">Cédula (Frente)</option>
               <option value="cedulaReverso">Cédula (Reverso)</option>
-              <option value="fotoCarnet">Foto Carnet</option>
             </select>
             {docLoading ? (
               <div className="w-4 h-4 border-2 border-slate-200 border-t-utn-blue rounded-full animate-spin" />
