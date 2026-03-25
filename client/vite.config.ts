@@ -8,5 +8,6 @@ export default defineConfig({
   server: {
     host: '0.0.0.0', // Permite acceso por IP
     port: 5173,
+    strictPort: true, // Evita que Vite cambie de puerto automáticamente
   },
 })

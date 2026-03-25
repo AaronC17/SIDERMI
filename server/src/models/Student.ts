@@ -56,9 +56,6 @@ export interface IStudent extends Document {
     titulo: IDocumentoEstado;
     cedulaFrente: IDocumentoEstado;
     cedulaReverso: IDocumentoEstado;
-    fotoCarnet: IDocumentoEstado;
-    formularioMatricula: IDocumentoEstado;
-    otros: IDocumentoEstado;
   };
 
   // === CONTACTO ===
@@ -145,9 +142,6 @@ const StudentSchema = new Schema<IStudent>({
     titulo: { type: DocumentoEstadoSchema, default: () => ({ estado: 'NO_REVISADO' }) },
     cedulaFrente: { type: DocumentoEstadoSchema, default: () => ({ estado: 'NO_REVISADO' }) },
     cedulaReverso: { type: DocumentoEstadoSchema, default: () => ({ estado: 'NO_REVISADO' }) },
-    fotoCarnet: { type: DocumentoEstadoSchema, default: () => ({ estado: 'NO_REVISADO' }) },
-    formularioMatricula: { type: DocumentoEstadoSchema, default: () => ({ estado: 'NO_REVISADO' }) },
-    otros: { type: DocumentoEstadoSchema, default: () => ({ estado: 'NO_REVISADO' }) },
   },
 
   // Contacto

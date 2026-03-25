@@ -249,9 +249,8 @@ export async function generarZipCompletos(outputPath: string): Promise<{
   const entradas: EntradaEstudiante[] = [];
 
   for (const est of estudiantes) {
-    const folderName = `${formatCedula(est.cedula)}_${est.primerApellido}_${est.nombre}_${est.tipoMatricula}`
-      .replace(/[^a-zA-Z0-9áéíóúñÁÉÍÓÚÑ_\-]/g, '_')
-      .replace(/_+/g, '_');
+    // Nombre de carpeta: solo la cédula sin guiones (ej: 604860288)
+    const folderName = est.cedula.replace(/\D/g, '');
 
     const nombreCompleto = `${est.nombre} ${est.primerApellido} ${est.segundoApellido || ''}`.trim();
 
@@ -281,25 +280,8 @@ export async function generarZipCompletos(outputPath: string): Promise<{
     }
 
     // 3. Resto sin conversión (pero descifrar si es necesario)
-    const otrosDocs = ['fotoCarnet', 'formularioMatricula', 'otros'] as const;
+    // Ya no hay otros documentos, solo título y cédula
     const otrosArchivos: EntradaEstudiante['otrosArchivos'] = [];
-    for (const docType of otrosDocs) {
-      const doc = est.documentos[docType];
-      if (doc?.archivo) {
-        const filePath = path.join(docsDir, doc.archivo);
-        if (fs.existsSync(filePath)) {
-          // Leer y descifrar el archivo
-          const contenido = leerArchivoSeguro(filePath);
-          if (contenido) {
-            const ext = getOriginalExt(filePath);
-            otrosArchivos.push({
-              buffer: contenido,
-              archiveName: `${folderName}/${docType}${ext}`,
-            });
-          }
-        }
-      }
-    }
 
     // 4. Resumen
     const resumen = [
@@ -454,7 +436,7 @@ async function generarExcelReporte(estudiantes: IStudent[]): Promise<Buffer> {
 
   estudiantes.forEach((est, i) => {
     const nombreCompleto = `${est.nombre} ${est.primerApellido} ${est.segundoApellido || ''}`.trim();
-    const tieneArchivos  = (['titulo', 'cedulaFrente', 'cedulaReverso', 'fotoCarnet', 'formularioMatricula', 'otros'] as const)
+    const tieneArchivos  = (['titulo', 'cedulaFrente', 'cedulaReverso'] as const)
       .some(d => est.documentos[d]?.archivo);
 
     const row = sheet.addRow([
@@ -545,8 +527,6 @@ export async function getEstudiantesPendientes() {
     if (est.documentos.titulo.estado !== 'COMPLETO') faltantes.push('Título');
     if (est.documentos.cedulaFrente.estado !== 'COMPLETO') faltantes.push('Cédula (frente)');
     if (est.documentos.cedulaReverso.estado !== 'COMPLETO') faltantes.push('Cédula (reverso)');
-    if (est.documentos.fotoCarnet.estado !== 'COMPLETO') faltantes.push('Foto carnet');
-    if (est.documentos.formularioMatricula.estado !== 'COMPLETO') faltantes.push('Formulario');
 
     return {
       cedula: est.cedula,

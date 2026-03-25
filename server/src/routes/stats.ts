@@ -9,7 +9,7 @@ import { requireRole } from '../middleware/auth';
 const router = Router();
 
 // Tipos de documentos válidos
-const VALID_DOC_TYPES = ['titulo', 'cedulaFrente', 'cedulaReverso', 'fotoCarnet', 'formularioMatricula', 'otros'];
+const VALID_DOC_TYPES = ['titulo', 'cedulaFrente', 'cedulaReverso'];
 
 // GET /api/stats/dashboard - Estadísticas generales del dashboard
 router.get('/dashboard', async (_req: Request, res: Response) => {

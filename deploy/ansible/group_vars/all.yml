@@ -1,0 +1,42 @@
+# ===========================================
+# Variables Globales para SIDERMI
+# ===========================================
+
+# Usuario del sistema
+app_user: sidermi
+app_group: sidermi
+
+# Directorios
+app_dir: /home/{{ app_user }}/sidermi
+frontend_dir: "{{ app_dir }}/client"
+backend_dir: "{{ app_dir }}/server"
+
+# Versiones
+nodejs_version: "20"
+mongodb_version: "7.0"
+
+# Puertos
+backend_port: 4000
+frontend_port: 80
+
+# MongoDB
+mongodb_uri: "mongodb://localhost:27017/registro_utn"
+
+# Seguridad - CAMBIAR EN PRODUCCION
+# Generar con: openssl rand -hex 32
+jwt_secret: "{{ lookup('env', 'SIDERMI_JWT_SECRET') | default('CAMBIAR_ESTO_EN_PRODUCCION_' + ansible_date_time.epoch, true) }}"
+document_encryption_key: "{{ lookup('env', 'SIDERMI_ENC_KEY') | default('CAMBIAR_ESTO_EN_PRODUCCION_' + ansible_date_time.epoch, true) }}"
+
+# Firewall
+allowed_network: "10.90.0.0/16"
+
+# Email (opcional)
+smtp_host: "smtp.example.com"
+smtp_port: 587
+smtp_user: "usuario@example.com"
+smtp_pass: "contraseña_smtp"
+smtp_from: "Sistema UTN <noreply@utn.ac.cr>"
+
+# Git
+git_repo: "https://github.com/tu-usuario/sidermi.git"
+git_branch: "main"
