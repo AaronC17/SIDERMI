@@ -66,6 +66,11 @@ export default function StudentEditModal({ student, onClose, onSaved }: Props) {
   const [previewError, setPreviewError] = useState<string | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewDocLabel, setPreviewDocLabel] = useState('');
+  const [deleteConfirm, setDeleteConfirm] = useState<{ show: boolean; tipoDoc: string; label: string }>({
+    show: false,
+    tipoDoc: '',
+    label: ''
+  });
   const [uploadedFiles, setUploadedFiles] = useState<Record<string, string | null>>(
     Object.fromEntries(
       Object.entries(student.documentos || {}).map(([k, v]) => [k, v?.archivo ?? null])
@@ -136,7 +141,20 @@ export default function StudentEditModal({ student, onClose, onSaved }: Props) {
       addToast('Error al eliminar archivo', 'error');
     } finally {
       setDeleting(null);
+      setDeleteConfirm({ show: false, tipoDoc: '', label: '' });
     }
+  };
+
+  const confirmDelete = (tipoDoc: string) => {
+    setDeleteConfirm({
+      show: true,
+      tipoDoc,
+      label: DOC_LABELS[tipoDoc] || tipoDoc
+    });
+  };
+
+  const cancelDelete = () => {
+    setDeleteConfirm({ show: false, tipoDoc: '', label: '' });
   };
 
   const handlePreviewFile = async (tipoDoc: string) => {
@@ -332,7 +350,7 @@ export default function StudentEditModal({ student, onClose, onSaved }: Props) {
                       </button>
                       <button
                         type="button"
-                        onClick={() => handleDeleteFile(key)}
+                        onClick={() => confirmDelete(key)}
                         disabled={deleting === key}
                         className="flex items-center justify-center w-[30px] h-[30px] rounded-lg text-red-500 bg-white border-2 border-red-325 hover:bg-red-50 hover:text-red-600 hover:border-red-400 transition-all disabled:opacity-40 shadow-sm"
                       >
@@ -486,6 +504,37 @@ export default function StudentEditModal({ student, onClose, onSaved }: Props) {
                   className="max-w-full max-h-[70vh] object-contain rounded-lg shadow"
                 />
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de confirmación de eliminación */}
+      {deleteConfirm.show && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4" onClick={cancelDelete}>
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
+          <div
+            className="relative bg-white rounded-xl shadow-xl w-full max-w-sm p-5 border border-slate-200"
+            onClick={e => e.stopPropagation()}
+          >
+            <h3 className="text-base font-semibold text-slate-800 mb-2">¿Eliminar documento?</h3>
+            <p className="text-sm text-slate-600 mb-5">
+              Se eliminará <span className="font-semibold text-slate-900">{deleteConfirm.label}</span>. Esta acción no se puede deshacer.
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={cancelDelete}
+                className="px-4 py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-100 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() => handleDeleteFile(deleteConfirm.tipoDoc)}
+                disabled={deleting === deleteConfirm.tipoDoc}
+                className="px-4 py-2 rounded-lg text-sm font-medium text-white bg-red-500 hover:bg-red-600 disabled:opacity-50 transition-colors shadow-sm"
+              >
+                {deleting === deleteConfirm.tipoDoc ? 'Eliminando...' : 'Eliminar'}
+              </button>
             </div>
           </div>
         </div>
