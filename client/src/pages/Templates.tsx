@@ -65,7 +65,7 @@ const cedula = () => `${rndInt(1,9)}${String(rndInt(0,9999)).padStart(4,'0')}${S
 const normalizeText = (value: string) => value.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, '');
 const firstTwo = (value: string) => normalizeText(value).slice(0, 2);
 const buildTemplateEmail = (nombre: string, ap1: string, ap2: string) =>
-  `${firstTwo(nombre)}${normalizeText(ap1)}${firstTwo(ap2)}@est.utn.ac.cr`;
+  `${firstTwo(nombre)}.${normalizeText(ap1)}.${firstTwo(ap2)}@est.utn.ac.cr`;
 
 /* ── Shared pool of students (generated once) ── */
 interface StudentPool {

@@ -189,7 +189,6 @@ export default function Students() {
 
     const mailto = `mailto:${encodeURIComponent(student.correoElectronico)}?subject=${encodeURIComponent(correo.subject)}&body=${encodeURIComponent(correo.body)}`;
     window.location.href = mailto;
-    addToast('Outlook abierto con el correo pre-cargado', 'success');
   };
 
   const toggleSort = (field: string) => {
