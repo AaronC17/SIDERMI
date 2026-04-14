@@ -62,6 +62,10 @@ const AP2 = [
 const pick = <T,>(arr: T[]): T => arr[Math.floor(Math.random() * arr.length)];
 const rndInt = (min: number, max: number) => Math.floor(Math.random() * (max - min + 1)) + min;
 const cedula = () => `${rndInt(1,9)}${String(rndInt(0,9999)).padStart(4,'0')}${String(rndInt(0,9999)).padStart(4,'0')}`;
+const normalizeText = (value: string) => value.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, '');
+const firstTwo = (value: string) => normalizeText(value).slice(0, 2);
+const buildTemplateEmail = (nombre: string, ap1: string, ap2: string) =>
+  `${firstTwo(nombre)}${normalizeText(ap1)}${firstTwo(ap2)}@est.utn.ac.cr`;
 
 /* ── Shared pool of students (generated once) ── */
 interface StudentPool {
@@ -96,7 +100,7 @@ function getSharedPool(): StudentPool[] {
       ap1,
       ap2,
       sexo: isMale ? 'M' : 'F',
-      correo: `${nombre.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')}.${ap1.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')}${i}@est.utn.ac.cr`,
+      correo: buildTemplateEmail(nombre, ap1, ap2),
       telefono: `8${rndInt(100,999)}-${rndInt(1000,9999)}`,
       carrera: pick(CARRERAS),
     });
@@ -169,7 +173,7 @@ function genAvatarRows(n: number) {
       'Carnet': `UTN${String(2026000 + fromPool + i).padStart(7, '0')}`,
       'Identificación': ced,
       'Nombre': `${nombre} ${ap1} ${ap2}`,
-      'Correo Electrónico': `${nombre.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')}.${ap1.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')}@est.utn.ac.cr`,
+      'Correo Electrónico': buildTemplateEmail(nombre, ap1, ap2),
       'Teléfono': `8${rndInt(100,999)}-${rndInt(1000,9999)}`,
       'Código de Carrera': pick(CARRERAS).codigo,
     });

@@ -176,6 +176,9 @@ export const notificarMasivo = () =>
 export const deleteStudent = (cedula: string) =>
   API.delete(`/students/${cedula}`).then(r => r.data);
 
+export const deleteAllStudents = () =>
+  API.delete('/students').then(r => r.data);
+
 // === UPLOADS ===
 export const uploadAspirantes = (file: File) => {
   const fd = new FormData();

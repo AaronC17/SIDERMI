@@ -468,4 +468,38 @@ router.delete('/:cedula', requireRole('Administrador', 'Registro'), async (req: 
   }
 });
 
+// DELETE /api/students - Desactivar todos los estudiantes activos (solo Administrador)
+router.delete('/', requireRole('Administrador'), async (req: Request, res: Response) => {
+  try {
+    const totalActivos = await Student.countDocuments({ activo: true });
+
+    const result = await Student.updateMany(
+      { activo: true },
+      { $set: { activo: false } }
+    );
+
+    const { usuario, ip } = auditFromReq(req);
+    await registrarAuditoria({
+      usuario,
+      ip,
+      accion: 'ELIMINAR',
+      entidad: 'estudiante',
+      entidadId: 'TODOS',
+      detalle: `Se desactivaron ${result.modifiedCount || 0} de ${totalActivos} estudiantes activos`,
+      cambios: {
+        totalActivos: { antes: totalActivos, despues: 0 },
+        desactivados: { antes: 0, despues: result.modifiedCount || 0 },
+      },
+    });
+
+    res.json({
+      message: 'Estudiantes desactivados',
+      totalActivos,
+      desactivados: result.modifiedCount || 0,
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 export default router;

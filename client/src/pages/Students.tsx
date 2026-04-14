@@ -23,8 +23,10 @@ import {
   GraduationCap,
   ClipboardList,
   ChevronDown,
+  Trash2,
+  AlertTriangle,
 } from 'lucide-react';
-import { getStudents, getDashboard } from '../services/api';
+import { getStudents, getDashboard, deleteAllStudents } from '../services/api';
 import type { Student, PaginatedResponse, DashboardStats } from '../types';
 import { useToast } from '../components/Toast';
 import StudentEditModal from './StudentEdit';
@@ -114,6 +116,7 @@ function EstadoBadge({ estado }: { estado: string }) {
 export default function Students() {
   const { user } = useAuth();
   const canEdit = user?.rol !== 'Consulta';
+  const isAdmin = user?.rol === 'Administrador';
   const [data, setData] = useState<PaginatedResponse | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -130,6 +133,8 @@ export default function Students() {
   const [editStudent, setEditStudent] = useState<Student | null>(null);
   const [viewStudent, setViewStudent] = useState<Student | null>(null);
   const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
   const { addToast } = useToast();
 
   /* ── Fetch ── */
@@ -200,6 +205,23 @@ export default function Students() {
       : <ArrowDown size={11} className="text-utn-blue" />;
   };
 
+  const handleBulkDelete = async () => {
+    if (!isAdmin) return;
+    setBulkDeleting(true);
+    try {
+      const result = await deleteAllStudents();
+      addToast(`Se desactivaron ${result.desactivados ?? 0} estudiantes`, 'success');
+      setBulkDeleteOpen(false);
+      setPage(1);
+      await Promise.all([fetchData(), getDashboard().then(setStats).catch(() => {})]);
+    } catch (error: any) {
+      const msg = error?.response?.data?.error || 'No se pudieron borrar los estudiantes';
+      addToast(msg, 'error');
+    } finally {
+      setBulkDeleting(false);
+    }
+  };
+
   /* ═══ Render ═══ */
   return (
     <div className="space-y-4 fade-up">
@@ -209,12 +231,25 @@ export default function Students() {
           <h2 className="text-xl font-bold text-slate-800 tracking-tight">Gestión de Estudiantes</h2>
           <p className="text-sm text-slate-400 mt-0.5">Consulta y administración del estado documental de estudiantes</p>
         </div>
-        <button
-          onClick={() => { setPage(1); fetchData(); getDashboard().then(setStats).catch(() => {}); }}
-          className="inline-flex items-center gap-1.5 text-xs text-slate-400 hover:text-utn-blue transition-colors self-start mt-1"
-        >
-          <RefreshCw size={12} /> Actualizar
-        </button>
+        <div className="flex items-center gap-1.5 self-start mt-1">
+          <button
+            onClick={() => { setPage(1); fetchData(); getDashboard().then(setStats).catch(() => {}); }}
+            className="inline-flex items-center gap-1.5 text-xs text-slate-400 hover:text-utn-blue transition-colors"
+          >
+            <RefreshCw size={12} /> Actualizar
+          </button>
+
+          {isAdmin && (
+            <button
+              onClick={() => setBulkDeleteOpen(true)}
+              title="Borrar todos los estudiantes"
+              aria-label="Borrar todos los estudiantes"
+              className="p-1.5 rounded-lg text-slate-300 hover:text-red-600 hover:bg-red-50 transition-colors"
+            >
+              <Trash2 size={14} />
+            </button>
+          )}
+        </div>
       </div>
 
       {/* ── Mini metric cards ── */}
@@ -719,6 +754,46 @@ export default function Students() {
           student={viewStudent}
           onClose={() => setViewStudent(null)}
         />
+      )}
+
+      {bulkDeleteOpen && isAdmin && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/55 px-4">
+          <div className="w-full max-w-md rounded-2xl bg-white shadow-2xl border border-slate-200 overflow-hidden">
+            <div className="flex items-start gap-3 p-5 border-b border-slate-100 bg-red-50/70">
+              <div className="w-10 h-10 rounded-full bg-red-100 text-red-600 flex items-center justify-center shrink-0">
+                <AlertTriangle size={20} />
+              </div>
+              <div className="min-w-0">
+                <h3 className="text-base font-bold text-slate-800">¿Borrar todos los estudiantes?</h3>
+                <p className="text-sm text-slate-600 mt-1">
+                  Esta acción desactivará todos los estudiantes activos y no se recomienda hacerlo sin respaldo.
+                </p>
+              </div>
+            </div>
+
+            <div className="p-5 space-y-3">
+              <p className="text-sm text-slate-600">
+                Solo un administrador puede ejecutar esta acción. ¿Estás seguro de continuar?
+              </p>
+              <div className="flex items-center justify-end gap-2 pt-1">
+                <button
+                  onClick={() => setBulkDeleteOpen(false)}
+                  disabled={bulkDeleting}
+                  className="px-4 py-2 rounded-xl text-sm font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors disabled:opacity-50"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleBulkDelete}
+                  disabled={bulkDeleting}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-white bg-red-600 hover:bg-red-700 transition-colors disabled:opacity-50"
+                >
+                  {bulkDeleting ? 'Borrando…' : 'Sí, borrar'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
