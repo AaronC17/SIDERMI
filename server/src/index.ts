@@ -60,15 +60,17 @@ function isAllowedOrigin(origin: string): boolean {
 
 app.use(cors({
   origin: (origin, callback) => {
-    // Permitir requests sin origin (Postman, curl, etc.) solo en desarrollo
-    if (!origin && !isProduction) {
+    // Permitir requests sin origin (navegacion directa, recursos estaticos, curl, health checks)
+    if (!origin) {
       return callback(null, true);
     }
-    if (origin && isAllowedOrigin(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error('No permitido por CORS'));
+    if (isAllowedOrigin(origin)) {
+      return callback(null, true);
     }
+
+    // Bloquear origenes no permitidos sin convertirlo en error 500 global.
+    console.warn(`Origen no permitido por CORS: ${origin}`);
+    return callback(null, false);
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],

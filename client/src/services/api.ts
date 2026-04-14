@@ -1,11 +1,14 @@
 import axios, { AxiosError } from 'axios';
 import type { Student, DashboardStats, PaginatedResponse, UploadResult, UploadHistory } from '../types';
 
-// Usar la IP actual del navegador para conectar al backend
+// En produccion usar mismo host (/api). En desarrollo usar backend local:4000.
 const getApiBase = () => {
   if (import.meta.env.VITE_API_BASE) return import.meta.env.VITE_API_BASE;
-  const host = window.location.hostname;
-  return `http://${host}:4000/api`;
+  if (import.meta.env.DEV) {
+    const host = window.location.hostname;
+    return `http://${host}:4000/api`;
+  }
+  return `${window.location.origin}/api`;
 };
 
 const API = axios.create({

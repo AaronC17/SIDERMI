@@ -240,6 +240,8 @@ export async function generarZipCompletos(outputPath: string): Promise<{
 
   type EntradaEstudiante = {
     folderName: string;
+    tituloPdfName: string;
+    cedulaPdfName: string;
     tituloPdf?: Buffer | null;
     cedulaPdf?: Buffer | null;
     otrosArchivos: Array<{ buffer: Buffer; archiveName: string }>;
@@ -251,6 +253,8 @@ export async function generarZipCompletos(outputPath: string): Promise<{
   for (const est of estudiantes) {
     // Nombre de carpeta: solo la cédula sin guiones (ej: 604860288)
     const folderName = est.cedula.replace(/\D/g, '');
+    const tituloPdfName = `${folderName}_Título.pdf`;
+    const cedulaPdfName = `${folderName}_Cédula.pdf`;
 
     const nombreCompleto = `${est.nombre} ${est.primerApellido} ${est.segundoApellido || ''}`.trim();
 
@@ -294,12 +298,20 @@ export async function generarZipCompletos(outputPath: string): Promise<{
       `Correo:         ${est.correoElectronico || '—'}`,
       ``,
       `DOCUMENTOS:`,
-      `  Título:         ${est.documentos.titulo.estado}${tituloDoc?.archivo ? ' (PDF adjunto)' : ' (sin archivo digital)'}`,
-      `  Cédula Frente:  ${est.documentos.cedulaFrente.estado}${frentePath ? ' (incluido en cedula.pdf)' : ' (sin archivo digital)'}`,
-      `  Cédula Reverso: ${est.documentos.cedulaReverso.estado}${reversoPath ? ' (incluido en cedula.pdf)' : ' (sin archivo digital)'}`,
+      `  Título:         ${est.documentos.titulo.estado}${tituloDoc?.archivo ? ` (incluido en ${tituloPdfName})` : ' (sin archivo digital)'}`,
+      `  Cédula Frente:  ${est.documentos.cedulaFrente.estado}${frentePath ? ` (incluido en ${cedulaPdfName})` : ' (sin archivo digital)'}`,
+      `  Cédula Reverso: ${est.documentos.cedulaReverso.estado}${reversoPath ? ` (incluido en ${cedulaPdfName})` : ' (sin archivo digital)'}`,
     ].join('\n');
 
-    entradas.push({ folderName, tituloPdf, cedulaPdf, otrosArchivos, resumen });
+    entradas.push({
+      folderName,
+      tituloPdfName,
+      cedulaPdfName,
+      tituloPdf,
+      cedulaPdf,
+      otrosArchivos,
+      resumen,
+    });
   }
 
   // ── Construir el ZIP (sin awaits) ────────────────────────────────────────
@@ -314,9 +326,9 @@ export async function generarZipCompletos(outputPath: string): Promise<{
     // Excel va primero y con prefijo numérico para aparecer arriba en orden alfabético
     archive.append(excelBuffer, { name: '00_Reporte_Expedientes_Completos.xlsx' });
 
-    for (const { folderName, tituloPdf, cedulaPdf, otrosArchivos, resumen } of entradas) {
-      if (tituloPdf) archive.append(tituloPdf, { name: `${folderName}/titulo.pdf` });
-      if (cedulaPdf) archive.append(cedulaPdf, { name: `${folderName}/cedula.pdf` });
+    for (const { folderName, tituloPdfName, cedulaPdfName, tituloPdf, cedulaPdf, otrosArchivos, resumen } of entradas) {
+      if (tituloPdf) archive.append(tituloPdf, { name: `${folderName}/${tituloPdfName}` });
+      if (cedulaPdf) archive.append(cedulaPdf, { name: `${folderName}/${cedulaPdfName}` });
       for (const { buffer, archiveName } of otrosArchivos) {
         archive.append(buffer, { name: archiveName });
       }

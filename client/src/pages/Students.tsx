@@ -24,7 +24,7 @@ import {
   ClipboardList,
   ChevronDown,
 } from 'lucide-react';
-import { getStudents, notificarEstudiante, getDashboard } from '../services/api';
+import { getStudents, getDashboard } from '../services/api';
 import type { Student, PaginatedResponse, DashboardStats } from '../types';
 import { useToast } from '../components/Toast';
 import StudentEditModal from './StudentEdit';
@@ -58,6 +58,46 @@ function formatCedula(ced: string): string {
   const c = ced.replace(/\D/g, '');
   if (c.length === 9) return `${c[0]}-${c.slice(1, 5)}-${c.slice(5)}`;
   return ced;
+}
+
+function construirCorreoRequisitos(student: Student): { subject: string; body: string } | null {
+  const doc = student.documentos || ({} as Student['documentos']);
+  const faltaTitulo = doc.titulo?.estado !== 'COMPLETO';
+  const faltaCedula = doc.cedulaFrente?.estado !== 'COMPLETO' || doc.cedulaReverso?.estado !== 'COMPLETO';
+
+  if (!faltaTitulo && !faltaCedula) return null;
+
+  const subject = 'URGENTE: Solicitud de requisitos de matrícula';
+  const nombreCompleto = [student.nombre, student.primerApellido, student.segundoApellido]
+    .filter(Boolean)
+    .join(' ')
+    .trim();
+
+  const intro = [
+    `Estimado(a) ${nombreCompleto || 'estudiante'}:`,
+    '',
+    'El Departamento de Registro de la Sede del Pacífico ha revisado sus requisitos de matrícula en el sistema SIGU.',
+    'Tras la revisión, hemos detectado que aún tiene pendientes los siguientes documentos:',
+  ];
+
+  const pendientes: string[] = [];
+  if (faltaCedula) pendientes.push('• Cédula de identidad (escaneada por ambos lados en formato PDF).');
+  if (faltaTitulo) pendientes.push('• Título de Bachillerato en Educación Media (en formato PDF).');
+
+  const cierre = [
+    '',
+    'Le solicitamos subir estos archivos a la plataforma sigu.utn.ac.cr a la brevedad posible.',
+    'Evite el bloqueo de su matrícula completando este trámite pronto.',
+    '',
+    'Si presenta dificultades técnicas con el sistema, puede responder a este correo adjuntando los documentos solicitados.',
+    '',
+    'Saludos cordiales,',
+  ];
+
+  return {
+    subject,
+    body: [...intro, ...pendientes, ...cierre].join('\r\n'),
+  };
 }
 
 function EstadoBadge({ estado }: { estado: string }) {
@@ -128,10 +168,23 @@ export default function Students() {
     setSort('primerApellido'); setOrder('asc'); setPage(1);
   };
 
-  const handleNotify = async (ced: string) => {
+  const handleNotify = (student: Student) => {
     if (!canEdit) return;
-    try { await notificarEstudiante(ced); addToast('Notificación enviada', 'success'); fetchData(); }
-    catch { addToast('Error al notificar', 'error'); }
+
+    if (!student.correoElectronico) {
+      addToast('El estudiante no tiene correo registrado', 'error');
+      return;
+    }
+
+    const correo = construirCorreoRequisitos(student);
+    if (!correo) {
+      addToast('El estudiante no tiene requisitos pendientes de cédula o título', 'info');
+      return;
+    }
+
+    const mailto = `mailto:${encodeURIComponent(student.correoElectronico)}?subject=${encodeURIComponent(correo.subject)}&body=${encodeURIComponent(correo.body)}`;
+    window.location.href = mailto;
+    addToast('Outlook abierto con el correo pre-cargado', 'success');
   };
 
   const toggleSort = (field: string) => {
@@ -407,7 +460,7 @@ export default function Students() {
                             </button>
                             <button
                               title="Notificar por correo"
-                              onClick={() => handleNotify(s.cedula)}
+                              onClick={() => handleNotify(s)}
                               disabled={!s.correoElectronico}
                               className="p-1.5 rounded-lg hover:bg-amber-100 text-slate-400 hover:text-amber-600 disabled:opacity-20 disabled:cursor-not-allowed transition-colors"
                             >
@@ -593,7 +646,7 @@ export default function Students() {
                                 </button>
                                 <button
                                   title="Notificar por correo"
-                                  onClick={() => handleNotify(s.cedula)}
+                                  onClick={() => handleNotify(s)}
                                   disabled={!s.correoElectronico}
                                   className="p-1.5 rounded-lg hover:bg-amber-100 text-slate-400 hover:text-amber-600 disabled:opacity-20 disabled:cursor-not-allowed transition-colors"
                                 >
